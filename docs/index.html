@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Журнал Шиномонтаж</title>
+
+    <!-- iOS: запуск как приложение, без адресной строки -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Журнал">
+    <link rel="apple-touch-icon" href="icon-180.png">
+
+    <!-- Android-браузеры (если шеф откроет с андроида) -->
+    <meta name="theme-color" content="#121212">
+    <link rel="manifest" href="manifest.json">
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+        html, body { background-color: #121212; color: #e0e0e0; }
+        body {
+            padding-top: 20px; /* запас под статус-бар */
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: 20px;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .wrap { max-width: 640px; margin: 0 auto; padding: 0 16px; }
+
+        .app-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .app-title { font-size: 20px; font-weight: 700; color: #ffffff; }
+        .refresh-btn { background-color: #5c6bc0; color: #ffffff; border: none; padding: 10px 16px; font-size: 15px; font-weight: 600; border-radius: 8px; cursor: pointer; }
+        .refresh-btn:active { opacity: 0.7; }
+        .status-line { font-size: 12px; color: #888888; margin-bottom: 14px; min-height: 14px; }
+        .status-line.err { color: #e53935; }
+
+        .section-title { font-size: 18px; font-weight: 700; color: #ffffff; margin: 18px 0 10px; }
+        .card { background-color: #1e1e1e; border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; }
+        .card .line { font-size: 16px; color: #e0e0e0; line-height: 1.55; white-space: pre-wrap; }
+        .card .line.big { font-size: 18px; }
+        .card .line .lbl { color: #aaaaaa; }
+
+        .report { font-size: 14px; }
+
+        .divider { height: 2px; background-color: #333333; margin: 22px 0 6px; }
+
+        .install-hint { background-color: #1e1e1e; border-radius: 10px; padding: 12px 16px; margin: 16px 0; font-size: 14px; color: #aaaaaa; line-height: 1.5; }
+
+        .empty { color: #aaaaaa; font-size: 16px; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <div class="app-header">
+        <div class="app-title">Журнал Шиномонтаж</div>
+        <button class="refresh-btn" onclick="refreshNow()">Обновить</button>
+    </div>
+    <div class="status-line" id="status-line">Загрузка…</div>
+
+    <div id="install-hint" class="install-hint" style="display:none;">
+        Совет: в Safari нажмите «Поделиться» <span style="white-space:nowrap">⎋</span> → «На экран „Домой“» — и журнал станет полноценным приложением с иконкой.
+    </div>
+
+    <div id="content"></div>
+</div>
+
+<script>
+    var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxiqxOD5Fuj8FYLp3OEg5HKTbr1YS2gT7Dxp0BywWnoROYW85rkjD3clJc7dvfaVpJqiw/exec';
+    var AUTO_REFRESH_MS = 15000;
+    var fetchInFlight = false;
+    var lastUpdated = null;
+
+    // Подсказка установки: показываем только в браузере (не в standalone-режиме)
+    var isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+    if (!isStandalone) { document.getElementById('install-hint').style.display = 'block'; }
+
+    function fmtTime(ms) {
+        var d = new Date(ms);
+        var h = d.getHours(), m = d.getMinutes();
+        if (h < 10) h = '0' + h;
+        if (m < 10) m = '0' + m;
+        return h + ':' + m;
+    }
+
+    function setStatus(text, isErr) {
+        var el = document.getElementById('status-line');
+        el.textContent = text;
+        el.className = 'status-line' + (isErr ? ' err' : '');
+    }
+
+    function refreshNow() {
+        if (fetchInFlight) return;
+        fetchInFlight = true;
+        fetch(SCRIPT_URL + '?mode=fetch_json', { method: 'GET', cache: 'no-store' })
+            .then(function(r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
+            .then(function(db) {
+                lastUpdated = new Date();
+                setStatus('Обновлено: ' + lastUpdated.toLocaleTimeString('ru-RU'));
+                render(db);
+            })
+            .catch(function() {
+                setStatus('Нет связи с сервером' + (lastUpdated ? ' (данные на ' + lastUpdated.toLocaleTimeString('ru-RU') + ')' : ''), true);
+            })
+            .then(function() { fetchInFlight = false; });
+    }
+
+    function card(lines, isReport) {
+        var c = document.createElement('div');
+        c.className = 'card' + (isReport ? ' report' : '');
+        for (var i = 0; i < lines.length; i++) {
+            var div = document.createElement('div');
+            div.className = 'line' + (lines[i].big ? ' big' : '');
+            div.textContent = lines[i].text;
+            c.appendChild(div);
+        }
+        return c;
+    }
+
+    function render(db) {
+        var content = document.getElementById('content');
+        content.innerHTML = '';
+
+        // ===== Текущая смена =====
+        var h1 = document.createElement('div');
+        h1.className = 'section-title';
+        h1.textContent = 'ТЕКУЩАЯ СМЕНА';
+        content.appendChild(h1);
+
+        try {
+            var live = db.live;
+            if (live && live.isOpen) {
+                var cash = live.totalCash || 0;
+                var transfer = live.totalTransfer || 0;
+                var salary = live.masterSalary || 0;
+                var expenses = live.expenses || 0;
+                var roundedSalary = Math.ceil(salary / 50) * 50;
+                var bossShare = (cash + transfer) - roundedSalary - expenses;
+
+                var lines = [
+                    { text: 'Мастер: ' + (live.masterName || 'Неизвестно').toUpperCase(), big: true },
+                    { text: 'Наличными: ' + cash + ' руб' },
+                    { text: 'Переводами: ' + transfer + ' руб' },
+                    { text: 'Зарплата мастера: ' + roundedSalary + ' руб' },
+                    { text: 'Доля шефа: ' + bossShare + ' руб', big: true }
+                ];
+                if (expenses > 0) lines.push({ text: 'Расходы: -' + expenses + ' руб' });
+                content.appendChild(card(lines));
+
+                // Логи: переводы, затем наличка (новые сверху)
+                var trans = live.transactions || [];
+                var i, t;
+
+                var transfers = [];
+                var cashes = [];
+                for (i = 0; i < trans.length; i++) {
+                    if (trans[i].type === 'transfer') transfers.push(trans[i]);
+                    else cashes.push(trans[i]);
+                }
+
+                if (transfers.length > 0) {
+                    var l1 = [{ text: 'Лог переводов:' }];
+                    for (i = transfers.length - 1; i >= 0; i--) {
+                        t = transfers[i];
+                        l1.push({ text: '  ' + fmtTime(t.time) + ' - ' + t.amount + ' руб' });
+                    }
+                    content.appendChild(card(l1));
+                }
+                if (cashes.length > 0) {
+                    var l2 = [{ text: 'Лог налички:' }];
+                    for (i = cashes.length - 1; i >= 0; i--) {
+                        t = cashes[i];
+                        l2.push({ text: '  ' + fmtTime(t.time) + ' - ' + t.amount + ' руб' });
+                    }
+                    content.appendChild(card(l2));
+                }
+            } else {
+                content.appendChild(card([{ text: 'Смена закрыта. Ждем открытия.' }]));
+            }
+        } catch (e) {
+            content.appendChild(card([{ text: 'Ошибка разбора текущей смены' }]));
+        }
+
+        // ===== Журнал =====
+        var divider = document.createElement('div');
+        divider.className = 'divider';
+        content.appendChild(divider);
+
+        var h2 = document.createElement('div');
+        h2.className = 'section-title';
+        h2.textContent = 'ЖУРНАЛ СМЕН';
+        content.appendChild(h2);
+
+        try {
+            var journal = db.journal || [];
+            if (journal.length === 0) {
+                var p = document.createElement('div');
+                p.className = 'empty';
+                p.textContent = 'История пуста.';
+                content.appendChild(p);
+            } else {
+                for (var j = journal.length - 1; j >= 0; j--) {
+                    content.appendChild(card([{ text: journal[j].report }], true));
+                }
+            }
+        } catch (e) {
+            content.appendChild(card([{ text: 'Ошибка разбора архива' }]));
+        }
+    }
+
+    // Автообновление: только когда вкладка видима (в фоне iOS сам морозит таймеры)
+    setInterval(function() {
+        if (document.visibilityState === 'visible') { refreshNow(); }
+    }, AUTO_REFRESH_MS);
+
+    // Возврат в приложение после сворачивания — освежить сразу
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') { refreshNow(); }
+    });
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(function() {});
+    }
+
+    refreshNow();
+</script>
+</body>
+</html>
