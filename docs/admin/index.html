@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Админ Шиномонтаж</title>
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Админ">
+    <link rel="apple-touch-icon" href="icon-180.png">
+
+    <meta name="theme-color" content="#121212">
+    <link rel="manifest" href="manifest.json">
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+        html, body { background-color: #121212; color: #e0e0e0; }
+        body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+        .wrap { max-width: 640px; margin: 0 auto; padding: 16px 16px 40px; }
+
+        .app-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .app-title { font-size: 20px; font-weight: 700; color: #ffffff; }
+        .header-btns { display: flex; gap: 8px; }
+        .btn-mini { background-color: #5c6bc0; color: #ffffff; border: none; padding: 10px 14px; font-size: 15px; font-weight: 600; border-radius: 8px; }
+        .btn-mini-red { background-color: #e53935; }
+        .status-line { font-size: 12px; color: #888888; margin-bottom: 14px; min-height: 14px; }
+        .status-line.err { color: #e53935; }
+
+        .section-title { font-size: 18px; font-weight: 700; color: #ffffff; margin: 18px 0 10px; }
+        .sub-title { font-size: 14px; color: #aaaaaa; margin: 14px 0 8px; }
+        .card { background-color: #1e1e1e; border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; }
+        .line { font-size: 16px; color: #e0e0e0; line-height: 1.55; white-space: pre-wrap; }
+        .report { font-size: 14px; }
+        .divider { height: 2px; background-color: #333333; margin: 22px 0 6px; }
+        .empty { color: #aaaaaa; font-size: 16px; }
+
+        .tx-row { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #2a2a2a; }
+        .tx-row:last-child { border-bottom: none; }
+        .tx-text { flex: 1; font-size: 16px; color: #e0e0e0; }
+        .btn-sm { border: none; border-radius: 8px; font-weight: 700; font-size: 14px; padding: 10px 12px; margin-left: 8px; cursor: pointer; }
+        .btn-sm-edit { background-color: #ff9800; color: #000000; }
+        .btn-sm-del { background-color: #e53935; color: #ffffff; }
+
+        .btn { border: none; border-radius: 8px; font-weight: 600; font-size: 16px; padding: 14px; cursor: pointer; }
+        .btn-green { background-color: #2e7d32; color: #ffffff; }
+        .btn-red { background-color: #e53935; color: #ffffff; }
+        .btn-grey { background-color: #333333; color: #e0e0e0; }
+        .btn-full { width: 100%; margin: 6px 0; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.85); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+        .modal-overlay.open { display: flex; }
+        .modal { background-color: #1e1e1e; border-radius: 12px; padding: 20px; width: 100%; max-width: 400px; }
+        .modal-title { font-size: 18px; font-weight: 700; color: #ffffff; margin-bottom: 14px; text-align: center; }
+        .pay-input { width: 100%; height: 46px; background-color: #333333; border: 1px solid #444444; color: #ffffff; border-radius: 8px; text-align: center; font-size: 22px; margin-bottom: 12px; }
+        .type-toggle { display: flex; gap: 10px; margin-bottom: 14px; }
+        .type-btn { flex: 1; background-color: #333333; color: #aaaaaa; border: 1px solid #444444; border-radius: 8px; padding: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
+        .type-btn.active { background-color: #2e7d32; color: #ffffff; border-color: #2e7d32; }
+        .modal-btns { display: flex; gap: 10px; }
+        .modal-btns .btn { flex: 1; }
+        .confirm-text { font-size: 15px; color: #cccccc; margin-bottom: 16px; text-align: center; line-height: 1.5; }
+
+        .toast { position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%) translateY(20px); background-color: #333333; color: #ffffff; padding: 12px 20px; border-radius: 10px; font-size: 15px; opacity: 0; pointer-events: none; transition: opacity 0.25s, transform 0.25s; z-index: 200; max-width: 85%; text-align: center; }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        .lock-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .lock-card { width: 100%; max-width: 360px; }
+        .lock-title { font-size: 20px; font-weight: 700; color: #ffffff; text-align: center; margin-bottom: 16px; }
+        .lock-err { color: #e53935; font-size: 14px; text-align: center; margin-top: 10px; min-height: 16px; }
+    </style>
+</head>
+<body>
+
+    <!-- Экран блокировки -->
+    <div id="lock-screen" class="lock-wrap">
+        <div class="card lock-card">
+            <div class="lock-title">Админ Шиномонтаж</div>
+            <input type="password" id="pass-input" class="pay-input" placeholder="Пароль" autocomplete="off">
+            <button class="btn btn-green btn-full" onclick="tryUnlock()">Войти</button>
+            <div id="lock-error" class="lock-err"></div>
+        </div>
+    </div>
+
+    <!-- Приложение -->
+    <div id="app" style="display:none">
+        <div class="wrap">
+            <div class="app-header">
+                <div class="app-title">Админ Шиномонтаж</div>
+                <div class="header-btns">
+                    <button class="btn-mini" onclick="refreshNow()">Обновить</button>
+                    <button class="btn-mini btn-mini-red" onclick="lockApp()">🔒</button>
+                </div>
+            </div>
+            <div class="status-line" id="status-line"></div>
+            <div id="content"></div>
+        </div>
+    </div>
+
+    <!-- Модалка: добавить/изменить оплату -->
+    <div class="modal-overlay" id="pay-modal">
+        <div class="modal">
+            <div class="modal-title" id="pay-title"></div>
+            <input type="number" id="pay-amount" class="pay-input" placeholder="Сумма (руб)">
+            <div class="type-toggle">
+                <button id="type-cash" class="type-btn" onclick="setPayType('cash')">Наличные</button>
+                <button id="type-transfer" class="type-btn" onclick="setPayType('transfer')">Перевод</button>
+            </div>
+            <div class="modal-btns">
+                <button class="btn btn-grey" onclick="closePayModal()">Отмена</button>
+                <button class="btn btn-green" onclick="confirmPayModal()">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка: подтверждение удаления -->
+    <div class="modal-overlay" id="confirm-modal">
+        <div class="modal">
+            <div class="modal-title">Подтверждение</div>
+            <div id="confirm-text" class="confirm-text"></div>
+            <div class="modal-btns">
+                <button class="btn btn-grey" onclick="closeConfirmModal()">Нет</button>
+                <button class="btn btn-red" id="confirm-yes">Да</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+<script>
+    var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxiqxOD5Fuj8FYLp3OEg5HKTbr1YS2gT7Dxp0BywWnoROYW85rkjD3clJc7dvfaVpJqiw/exec';
+    var PASS_KEY = 'shino_admin_pass';
+    var pass = '';
+    var fetchInFlight = false;
+    var lastUpdated = null;
+    var payCtx = { onSave: null };
+    var payType = 'cash';
+    var confirmAction = null;
+    var toastTimer = null;
+
+    function $(id) { return document.getElementById(id); }
+
+    function fmtTime(ms) {
+        if (!ms) return '--:--';
+        var d = new Date(ms);
+        var h = d.getHours(), m = d.getMinutes();
+        if (h < 10) h = '0' + h;
+        if (m < 10) m = '0' + m;
+        return h + ':' + m;
+    }
+
+    function toast(msg) {
+        var t = $('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTimer = setTimeout(function() { t.classList.remove('show'); }, 2600);
+    }
+
+    function setStatus(text, isErr) {
+        var el = $('status-line');
+        el.textContent = text;
+        el.className = 'status-line' + (isErr ? ' err' : '');
+    }
+
+    // ---------- Блокировка ----------
+
+    function showLock() {
+        $('lock-screen').style.display = 'flex';
+        $('app').style.display = 'none';
+        $('pass-input').value = '';
+        $('lock-error').textContent = '';
+    }
+
+    function enterApp() {
+        $('lock-screen').style.display = 'none';
+        $('app').style.display = 'block';
+        refreshNow();
+    }
+
+    function lockApp() {
+        pass = '';
+        localStorage.removeItem(PASS_KEY);
+        showLock();
+    }
+
+    function setLockError(msg) { $('lock-error').textContent = msg; }
+
+    // Проверка пароля без изменений на сервере: doPost сначала проверяет
+    // pass, потом action. Верный пароль + неизвестное действие 'ping'
+    // => "Неизвестное действие" (успех). Неверный => "Ошибка авторизации".
+    function tryUnlock() {
+        var p = $('pass-input').value;
+        if (!p) return;
+        setLockError('');
+        var usp = new URLSearchParams();
+        usp.set('pass', p);
+        usp.set('action', 'ping');
+        fetch(SCRIPT_URL, { method: 'POST', body: usp })
+            .then(function(r) { return r.text(); })
+            .then(function(text) {
+                text = (text || '').trim();
+                if (text.indexOf('авториза') !== -1) {
+                    setLockError('Неверный пароль');
+                } else {
+                    pass = p;
+                    localStorage.setItem(PASS_KEY, p);
+                    enterApp();
+                }
+            })
+            .catch(function() { setLockError('Нет связи с сервером'); });
+    }
+
+    // ---------- Сеть ----------
+
+    function refreshNow() {
+        if (fetchInFlight) return;
+        fetchInFlight = true;
+        fetch(SCRIPT_URL + '?mode=fetch_json', { method: 'GET', cache: 'no-store' })
+            .then(function(r) { if (!r.ok) throw new Error('http'); return r.json(); })
+            .then(function(db) {
+                lastUpdated = new Date();
+                setStatus('Обновлено: ' + lastUpdated.toLocaleTimeString('ru-RU'));
+                render(db);
+            })
+            .catch(function() {
+                setStatus('Нет связи с сервером' + (lastUpdated ? ' (данные на ' + lastUpdated.toLocaleTimeString('ru-RU') + ')' : ''), true);
+            })
+            .then(function() { fetchInFlight = false; });
+    }
+
+    function postToServer(params, successMsg) {
+        var usp = new URLSearchParams();
+        usp.set('pass', pass);
+        for (var key in params) {
+            if (params.hasOwnProperty(key)) usp.set(key, params[key]);
+        }
+        fetch(SCRIPT_URL, { method: 'POST', body: usp })
+            .then(function(r) { return r.text(); })
+            .then(function(text) {
+                text = (text || '').trim();
+                if (text === 'OK') { toast(successMsg); refreshNow(); }
+                else if (text === 'NOT_FOUND') { toast('Не найдено на сервере — данные обновлены, повторите'); refreshNow(); }
+                else if (text.indexOf('авториза') !== -1) { toast('Неверный пароль'); lockApp(); }
+                else { toast('Ошибка: ' + text); }
+            })
+            .catch(function() { toast('Ошибка сети'); });
+    }
+
+    function getToServer(url, successMsg) {
+        fetch(url, { method: 'GET', cache: 'no-store' })
+            .then(function(r) { if (!r.ok) throw new Error('http'); return r.text(); })
+            .then(function() { toast(successMsg); refreshNow(); })
+            .catch(function() { toast('Ошибка сети'); });
+    }
+
+    // ---------- Построение UI ----------
+
+    function el(tag, cls, text) {
+        var e = document.createElement(tag);
+        if (cls) e.className = cls;
+        if (text != null) e.textContent = text;
+        return e;
+    }
+
+    function txRow(parent, t, shiftId) {
+        var row = el('div', 'tx-row');
+        var type = t.type === 'cash' ? 'Нал' : 'Безнал';
+        row.appendChild(el('div', 'tx-text', fmtTime(t.time) + ' - ' + type + ' - ' + t.amount + ' руб'));
+
+        var bEdit = el('button', 'btn-sm btn-sm-edit', 'Изм');
+        bEdit.onclick = function() {
+            showPayDialog('Изменить оплату', t.amount, t.type, function(amount, newType) {
+                var m = Math.round(amount * 0.4);
+                var b = amount - m;
+                var params;
+                if (shiftId == null) {
+                    params = { action: 'edit_transaction', id: String(t.id), type: newType, amount: amount, masterShare: m, bossShare: b };
+                } else {
+                    params = { action: 'edit_journal_transaction', shiftId: String(shiftId), transId: String(t.id), type: newType, amount: amount, masterShare: m, bossShare: b };
+                }
+                postToServer(params, 'Изменения сохранены');
+            });
+        };
+        row.appendChild(bEdit);
+
+        var bDel = el('button', 'btn-sm btn-sm-del', 'X');
+        bDel.onclick = function() {
+            showConfirm('Удалить оплату безвозвратно?', function() {
+                var url;
+                if (shiftId == null) {
+                    url = SCRIPT_URL + '?mode=delete_transaction&id=' + encodeURIComponent(String(t.id));
+                } else {
+                    url = SCRIPT_URL + '?mode=delete_journal_transaction&shiftId=' + encodeURIComponent(String(shiftId)) + '&transId=' + encodeURIComponent(String(t.id));
+                }
+                getToServer(url, 'Оплата удалена');
+            });
+        };
+        row.appendChild(bDel);
+
+        parent.appendChild(row);
+    }
+
+    function render(db) {
+        var content = $('content');
+        content.innerHTML = '';
+
+        try {
+            var live = db.live;
+
+            content.appendChild(el('div', 'section-title', 'ТЕКУЩАЯ СМЕНА'));
+
+            if (live && live.isOpen) {
+                var c1 = el('div', 'card');
+                c1.appendChild(el('div', 'line', 'Мастер: ' + (live.masterName || 'Неизвестно')));
+                c1.appendChild(el('div', 'line', 'Наличными: ' + (live.totalCash || 0) + ' руб'));
+                c1.appendChild(el('div', 'line', 'Переводами: ' + (live.totalTransfer || 0) + ' руб'));
+                if (live.expenses > 0) c1.appendChild(el('div', 'line', 'Расходы: -' + live.expenses + ' руб'));
+                content.appendChild(c1);
+
+                var bAdd = el('button', 'btn btn-green btn-full', '+ Добавить оплату');
+                bAdd.onclick = function() {
+                    showPayDialog('Добавить оплату', null, 'cash', function(amount, type) {
+                        var m = Math.round(amount * 0.4);
+                        postToServer({ action: 'admin_add_transaction', type: type, amount: amount, masterShare: m, bossShare: amount - m }, 'Оплата добавлена');
+                    });
+                };
+                content.appendChild(bAdd);
+
+                content.appendChild(el('div', 'sub-title', '--- Транзакции ---'));
+                var trs = live.transactions || [];
+                if (trs.length === 0) {
+                    content.appendChild(el('div', 'empty', 'Пусто.'));
+                } else {
+                    var c2 = el('div', 'card');
+                    for (var i = trs.length - 1; i >= 0; i--) txRow(c2, trs[i], null);
+                    content.appendChild(c2);
+                }
+            } else {
+                content.appendChild(el('div', 'empty', 'Смена закрыта. Ждем открытия.'));
+            }
+
+            content.appendChild(el('div', 'divider'));
+
+            content.appendChild(el('div', 'section-title', 'ЖУРНАЛ СМЕН'));
+
+            var journal = db.journal || [];
+            if (journal.length === 0) {
+                content.appendChild(el('div', 'empty', 'История пуста.'));
+            } else {
+                for (var j = journal.length - 1; j >= 0; j--) {
+                    var s = journal[j];
+                    var card = el('div', 'card');
+                    var rep = el('div', 'line report');
+                    rep.textContent = s.report;
+                    card.appendChild(rep);
+
+                    var jtrs = s.transactions || [];
+                    if (jtrs.length > 0) {
+                        card.appendChild(el('div', 'sub-title', '--- Оплаты этой смены ---'));
+                        for (var k = jtrs.length - 1; k >= 0; k--) txRow(card, jtrs[k], s.id);
+                    }
+
+                    var bAddJ = el('button', 'btn btn-green btn-full', '+ Добавить оплату в смену');
+                    bAddJ.onclick = (function(sid) {
+                        return function() {
+                            showPayDialog('Добавить оплату', null, 'cash', function(amount, type) {
+                                var m = Math.round(amount * 0.4);
+                                postToServer({ action: 'add_journal_transaction', shiftId: String(sid), type: type, amount: amount, masterShare: m, bossShare: amount - m }, 'Оплата добавлена');
+                            });
+                        };
+                    })(s.id);
+                    card.appendChild(bAddJ);
+
+                    var bDelS = el('button', 'btn btn-red btn-full', 'Удалить всю смену');
+                    bDelS.onclick = (function(sid) {
+                        return function() {
+                            showConfirm('Вся смена и все её оплаты будут удалены безвозвратно. Продолжить?', function() {
+                                getToServer(SCRIPT_URL + '?mode=delete&id=' + encodeURIComponent(String(sid)), 'Смена удалена');
+                            });
+                        };
+                    })(s.id);
+                    card.appendChild(bDelS);
+
+                    content.appendChild(card);
+                }
+            }
+        } catch (e) {
+            content.appendChild(el('div', 'empty', 'Ошибка разбора данных'));
+        }
+    }
+
+    // ---------- Модалки ----------
+
+    function setPayType(t) {
+        payType = t;
+        $('type-cash').className = 'type-btn' + (t === 'cash' ? ' active' : '');
+        $('type-transfer').className = 'type-btn' + (t === 'transfer' ? ' active' : '');
+    }
+
+    function showPayDialog(title, amount, type, onSave) {
+        $('pay-title').textContent = title;
+        $('pay-amount').value = (amount != null) ? String(amount) : '';
+        setPayType(type || 'cash');
+        payCtx.onSave = onSave;
+        $('pay-modal').classList.add('open');
+    }
+
+    function closePayModal() {
+        $('pay-modal').classList.remove('open');
+        payCtx.onSave = null;
+    }
+
+    function confirmPayModal() {
+        var v = parseInt($('pay-amount').value, 10);
+        if (!v || v <= 0) { toast('Введите сумму'); return; }
+        var onSave = payCtx.onSave;
+        $('pay-modal').classList.remove('open');
+        payCtx.onSave = null;
+        if (onSave) onSave(v, payType);
+    }
+
+    function showConfirm(text, action) {
+        confirmAction = action;
+        $('confirm-text').textContent = text;
+        $('confirm-modal').classList.add('open');
+    }
+
+    function closeConfirmModal() {
+        $('confirm-modal').classList.remove('open');
+        confirmAction = null;
+    }
+
+    $('confirm-yes').onclick = function() {
+        var action = confirmAction;
+        closeConfirmModal();
+        if (action) action();
+    };
+
+    $('pass-input').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') tryUnlock();
+    });
+
+    // ---------- Инициализация ----------
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(function() {});
+    }
+
+    pass = localStorage.getItem(PASS_KEY) || '';
+    if (pass) { enterApp(); } else { showLock(); }
+</script>
+</body>
+</html>
