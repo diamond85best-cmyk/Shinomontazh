@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Калькулятор Шиномонтажа</title>
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Мастер">
+    <link rel="apple-touch-icon" href="icon-180.png">
+    <meta name="theme-color" content="#121212">
+    <link rel="manifest" href="manifest.json">
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: #121212; color: #e0e0e0; padding: 70px 20px 120px 20px; width: 100%; max-width: 100%; margin: 0 auto; }
+        h2 { text-align: center; margin-bottom: 20px; font-size: 24px; color: #ffffff; font-weight: 600; }
+        .top-bar { position: fixed; top: 0; left: 0; right: 0; background-color: #1a1a1a; border-bottom: 2px solid #252525; padding: 10px 20px; padding-top: calc(10px + env(safe-area-inset-top)); display: flex; justify-content: space-between; align-items: center; z-index: 100; width: 100%; max-width: 100%; margin: 0 auto; box-shadow: 0 5px 15px rgba(0,0,0,0.6); }
+        .shift-info { display: flex; flex-direction: column; }
+        .shift-title { font-size: 12px; color: #aaaaaa; text-transform: uppercase; letter-spacing: 1px; }
+        .shift-amount { font-size: 20px; font-weight: 700; color: #ffffff; }
+        .top-bar-buttons { display: flex; gap: 10px; }
+        .btn-history { background-color: #5c6bc0; color: #ffffff; border: none; padding: 12px 15px; font-size: 14px; font-weight: 600; border-radius: 6px; cursor: pointer; }
+        .btn-history.unsent { background-color: #e53935; }
+        .btn-salary { background-color: #ff9800; color: #ffffff; border: none; padding: 12px 15px; font-size: 14px; font-weight: 600; border-radius: 6px; cursor: pointer; display: none; }
+        .btn-shift { background-color: #e53935; color: #ffffff; border: none; padding: 12px 15px; font-size: 14px; font-weight: 600; border-radius: 6px; cursor: pointer; }
+        .btn-shift.closed { background-color: #2e7d32; }
+        .step-indicator { display: flex; justify-content: space-between; margin-bottom: 25px; position: relative; max-width: 600px; margin-left: auto; margin-right: auto; }
+        .step-indicator::before { content: ''; position: absolute; top: 12px; left: 10px; right: 10px; height: 2px; background-color: #2c2c2c; z-index: 1; }
+        .step-dot { width: 26px; height: 26px; background-color: #1e1e1e; border: 2px solid #2c2c2c; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: #757575; z-index: 2; }
+        .step-dot.active { background-color: #4caf50; border-color: #4caf50; color: #ffffff; }
+        .step-dot.completed { background-color: #2e7d32; border-color: #2e7d32; color: #ffffff; }
+        .step-panel { display: none; background-color: #1e1e1e; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); margin-bottom: 20px; max-width: 800px; margin-left: auto; margin-right: auto; }
+        .step-panel.active { display: block; }
+        .step-title { font-size: 26px; font-weight: 600; margin-bottom: 15px; color: #ffffff; border-bottom: 1px solid #2c2c2c; padding-bottom: 8px; }
+        .grid-buttons { display: grid; grid-template-columns: 1fr; gap: 12px; }
+        .btn-select { background-color: #2a2a2a; color: #e0e0e0; border: 1px solid #3a3a3a; padding: 20px; font-size: 24px; font-weight: 500; border-radius: 8px; cursor: pointer; text-align: left; transition: all 0.2s ease; width: 100%; }
+        .btn-select.active { background-color: #4caf50 !important; color: #ffffff !important; border-color: #4caf50 !important; }
+        .piece-work-container { margin-top: 15px; border-top: 1px dashed #3a3a3a; padding-top: 15px; }
+        .item-row { display: flex; align-items: stretch; background-color: #252525; border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
+        .item-mid { flex: 1; display: flex; align-items: center; padding: 14px 14px 14px 16px; min-width: 0; }
+        .item-label { flex: 1; text-align: center; font-size: 24px; font-weight: 500; }
+        .counter-value { flex-shrink: 0; margin-left: 10px; font-size: 31px; font-weight: 700; min-width: 34px; text-align: right; }
+        .btn-counter { width: 14.2857%; min-height: 54px; background-color: #333333; color: #4caf50; border: none; font-size: 30px; font-weight: bold; cursor: pointer; padding: 0; transition: background-color 0.12s ease, color 0.12s ease; }
+        .btn-counter.flash { background-color: #4caf50; color: #ffffff; }
+        .input-weight { width: 90px; height: 52px; background-color: #333333; border: 1px solid #444444; color: #ffffff; border-radius: 6px; text-align: center; font-size: 23px; font-weight: 600; }
+        .addon-row { display: flex; align-items: center; background-color: #2a2a2a; padding: 20px; border-radius: 8px; margin-bottom: 10px; cursor: pointer; border: 1px solid #3a3a3a; transition: all 0.2s ease; }
+        .addon-row input[type="checkbox"] { display: none; }
+        .addon-row.active { background-color: #4caf50 !important; color: #ffffff !important; border-color: #4caf50 !important; }
+        .addon-text { font-size: 23px; line-height: 1.4; }
+        .nav-buttons { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-nav { flex: 1; padding: 16px; font-size: 24px; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; }
+        .btn-back { background-color: #333333; color: #e0e0e0; }
+        .btn-next { background-color: #4caf50; color: #ffffff; }
+        .payment-buttons { display: flex; gap: 10px; margin-top: 20px; border-top: 1px solid #2c2c2c; padding-top: 15px; align-items: stretch; }
+        .btn-pay { padding: 16px; font-size: 24px; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; color: #ffffff; }
+        .btn-cash { background-color: #2e7d32; flex: 1; }
+        .btn-transfer { background-color: #1565c0; flex: 1; }
+        .btn-split { background-color: #ff9800; flex: 0.6; font-size: 22px; padding: 10px; }
+        .btn-pay:disabled { background-color: #555555 !important; color: #999999; cursor: not-allowed; }
+        .fixed-total-bar { position: fixed; bottom: 0; left: 0; right: 0; background-color: #1a1a1a; border-top: 2px solid #252525; padding: 15px 20px; padding-bottom: calc(15px + env(safe-area-inset-bottom)); display: flex; justify-content: space-between; align-items: center; z-index: 100; width: 100%; max-width: 100%; margin: 0 auto; box-shadow: 0 -5px 15px rgba(0,0,0,0.6); }
+        .total-info { display: flex; flex-direction: column; }
+        .total-title { font-size: 12px; color: #aaaaaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
+        .total-amount { font-size: 28px; font-weight: 700; color: #ffffff; }
+        .btn-reset { background-color: #e53935; color: #ffffff; border: none; padding: 14px 28px; font-size: 16px; font-weight: 600; border-radius: 8px; cursor: pointer; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.85); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+        .modal-content { background-color: #1e1e1e; border-radius: 12px; padding: 25px; max-width: 500px; width: 100%; text-align: center; }
+        .report-textbox { width: 100%; height: 350px; background-color: #121212; color: #e0e0e0; border: 1px solid #333; border-radius: 8px; padding: 15px; font-size: 15px; margin-bottom: 15px; text-align: left; white-space: pre-wrap; }
+        .salary-box { background-color: #252525; padding: 25px; border-radius: 8px; margin-bottom: 15px; font-size: 18px; color: #fff; white-space: pre-wrap; text-align: left; }
+        .pay-input { width: 100%; height: 45px; background-color: #333333; border: 1px solid #444444; color: #ffffff; border-radius: 6px; text-align: center; font-size: 30px; font-weight: 600; margin-bottom: 15px; }
+        .btn-share-full { width: 100%; margin-top: 10px; padding: 16px; font-size: 30px; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; color: #ffffff; background-color: #5c6bc0; }
+        @media (min-width: 600px) { .grid-buttons { grid-template-columns: 1fr 1fr; } .item-mid { padding: 16px 18px 16px 20px; } .btn-select { font-size: 26px; } }
+        @media (min-width: 900px) { .grid-buttons { grid-template-columns: 1fr 1fr 1fr; } .payment-buttons { max-width: 600px; margin-left: auto; margin-right: auto; } .nav-buttons { max-width: 600px; margin-left: auto; margin-right: auto; } .btn-select { font-size: 28px; } }
+    </style>
+</head>
+<body>
+<div class="top-bar">
+    <div class="shift-info">
+        <div class="shift-title" id="shift-status">СМЕНА ЗАКРЫТА</div>
+        <div class="shift-amount" id="shift-revenue">0 руб</div>
+    </div>
+    <div class="top-bar-buttons">
+        <button class="btn-history" id="btn-history" onclick="showHistory()">Журнал</button>
+        <button class="btn-salary" id="btn-salary" onclick="showCurrentSalary()">Зарплата</button>
+        <button class="btn-shift closed" id="btn-shift" onclick="showOpenShiftModal()">Открыть смену</button>
+    </div>
+</div>
+<h2>Шиномонтаж</h2>
+<div class="step-indicator">
+    <div class="step-dot active" id="dot-1">1</div>
+    <div class="step-dot" id="dot-2">2</div>
+    <div class="step-dot" id="dot-3">3</div>
+</div>
+<div class="step-panel active" id="panel-1">
+    <div class="step-title">Шаг 1: Выберите тип авто или услугу</div>
+    <div class="grid-buttons">
+        <button class="btn-select btn-car" onclick="selectCarType('r16', this)">Легковая ≤ R16</button>
+        <button class="btn-select btn-car" onclick="selectCarType('suv', this)">Кроссовер SUV &gt; R16-18</button>
+        <button class="btn-select btn-car" onclick="selectCarType('gazelle', this)">*Газель/Соболь/4х4</button>
+        <button class="btn-select btn-car" onclick="selectCarType('r19_20', this)">*R19 – R20</button>
+    </div>
+    <div style="margin-top: 15px; border-top: 1px dashed #3a3a3a; padding-top: 15px;">
+        <div style="font-size: 14px; color: #aaa; margin-bottom: 8px;">Быстрые услуги:</div>
+        <div class="nav-buttons" style="margin-top: 0;">
+            <button class="btn-nav btn-next" style="background: #00838f;" onclick="selectQuickService('Жгут', 200)">Жгут (200)</button>
+            <button class="btn-nav btn-next" style="background: #00838f;" onclick="selectQuickService('Жгут со снятием', 400)">Жгут со снятием (400)</button>
+        </div>
+        <div style="margin-top: 10px;">
+            <button class="btn-nav btn-back" style="background: #455a64; width: 100%;" onclick="showCustomModal()">Другая услуга</button>
+        </div>
+    </div>
+    <div id="quick-service-pay" style="display: none; margin-top: 20px; border-top: 1px solid #2c2c2c; padding-top: 15px;">
+        <div class="payment-buttons" style="margin-top: 0; padding-top: 0; border: none;">
+            <button class="btn-pay btn-cash" id="btn-pay-cash-quick" onclick="processQuickPayment('cash')" disabled>Наличные</button>
+            <button class="btn-pay btn-split" id="btn-pay-split-quick" onclick="openSplitModal()" disabled>Сплит</button>
+            <button class="btn-pay btn-transfer" id="btn-pay-transfer-quick" onclick="processQuickPayment('transfer')" disabled>Перевод</button>
+        </div>
+    </div>
+</div>
+<div class="step-panel" id="panel-2">
+    <div class="step-title">Шаг 2: Выберите основную работу</div>
+    <div class="grid-buttons">
+        <button class="btn-select btn-job" onclick="selectJobType('full', this)">Полный комплекс</button>
+        <button class="btn-select btn-job" onclick="selectJobType('change_bal', this)">Замена с балансировкой</button>
+        <button class="btn-select btn-job" onclick="selectJobType('change_nobal', this)">Замена без балансировки</button>
+        <button class="btn-select btn-job" onclick="selectJobType('piece', this)">Поштучные операции</button>
+    </div>
+    <div id="gazelle-wheels-selector" style="display: none; margin-top: 15px; background: #252525; padding: 12px; border-radius: 8px;">
+        <div style="font-size: 14px; margin-bottom: 8px; color: #aaa;">Количество колес для Газели:</div>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-select btn-wheels active" id="btn-wh-4" onclick="selectGazelleWheels(4, this)" style="padding: 10px; text-align: center;">4 колеса</button>
+            <button class="btn-select btn-wheels" id="btn-wh-6" onclick="selectGazelleWheels(6, this)" style="padding: 10px; text-align: center;">6 колес</button>
+        </div>
+    </div>
+    <div class="piece-work-container" id="piece-fields" style="display: none;">
+        <div class="item-row"><button class="btn-counter" onclick="changeCount('remove_install', -1)">-</button><div class="item-mid"><div class="item-label">Снять-поставить 1 кол.</div><span class="counter-value" id="val-remove_install">0</span></div><button class="btn-counter" onclick="changeCount('remove_install', 1)">+</button></div>
+        <div id="row-sparka" class="item-row" style="display: none;"><button class="btn-counter" onclick="changeCount('sparka', -1)">-</button><div class="item-mid"><div class="item-label">300 спарка</div><span class="counter-value" id="val-sparka">0</span></div><button class="btn-counter" onclick="changeCount('sparka', 1)">+</button></div>
+        <div class="item-row"><button class="btn-counter" onclick="changeCount('montage', -1)">-</button><div class="item-mid"><div class="item-label">Монтаж шины</div><span class="counter-value" id="val-montage">0</span></div><button class="btn-counter" onclick="changeCount('montage', 1)">+</button></div>
+        <div class="item-row"><button class="btn-counter" onclick="changeCount('demontage', -1)">-</button><div class="item-mid"><div class="item-label">Демонтаж шины</div><span class="counter-value" id="val-demontage">0</span></div><button class="btn-counter" onclick="changeCount('demontage', 1)">+</button></div>
+        <div class="item-row"><button class="btn-counter" onclick="changeCount('balance', -1)">-</button><div class="item-mid"><div class="item-label">Балансировка</div><span class="counter-value" id="val-balance">0</span></div><button class="btn-counter" onclick="changeCount('balance', 1)">+</button></div>
+    </div>
+    <div class="nav-buttons">
+        <button class="btn-nav btn-back" onclick="changeStep(1)">Назад</button>
+        <button class="btn-nav btn-next" id="next-to-3" onclick="changeStep(3)" style="display: none;">Далее</button>
+    </div>
+</div>
+<div class="step-panel" id="panel-3">
+    <div class="step-title">Шаг 3: Доп. услуги и наценки</div>
+    <div class="grid-buttons" id="addons-container">
+        <div class="item-row" id="row-addon-weights"><button class="btn-counter" onclick="changeWeight(-50)">-</button><div class="item-mid"><div class="item-label">Груза (50)</div><span class="counter-value" id="val-weights">0</span></div><button class="btn-counter" onclick="changeWeight(50)">+</button></div>
+        <div class="item-row" id="row-addon-seal"><button class="btn-counter" onclick="changeAddon('seal', -1)">-</button><div class="item-mid"><div class="item-label">Герметизация обода (50)</div><span class="counter-value" id="val-addon-seal">0</span></div><button class="btn-counter" onclick="changeAddon('seal', 1)">+</button></div>
+        <div class="item-row" id="row-addon-harness"><button class="btn-counter" onclick="changeAddon('harness', -1)">-</button><div class="item-mid"><div class="item-label">Жгут (камерная латка) (200)</div><span class="counter-value" id="val-addon-harness">0</span></div><button class="btn-counter" onclick="changeAddon('harness', 1)">+</button></div>
+        <div class="item-row" id="row-addon-valve"><button class="btn-counter" onclick="changeAddon('valve', -1)">-</button><div class="item-mid"><div class="item-label">Замена вентиля (50)</div><span class="counter-value" id="val-addon-valve">0</span></div><button class="btn-counter" onclick="changeAddon('valve', 1)">+</button></div>
+        <div class="item-row" id="row-addon-valve_sensor"><button class="btn-counter" onclick="changeAddon('valve_sensor', -1)">-</button><div class="item-mid"><div class="item-label">Вентиль под датчик (300)</div><span class="counter-value" id="val-addon-valve_sensor">0</span></div><button class="btn-counter" onclick="changeAddon('valve_sensor', 1)">+</button></div>
+        <div class="item-row" id="row-addon-patch"><button class="btn-counter" onclick="changeAddon('patch', -1)">-</button><div class="item-mid"><div class="item-label">Кордовая латка (500)</div><span class="counter-value" id="val-addon-patch">0</span></div><button class="btn-counter" onclick="changeAddon('patch', 1)">+</button></div>
+    </div>
+    <div style="margin-top: 20px; border-top: 1px solid #2c2c2c; padding-top: 15px;">
+        <div class="addon-row" id="row-runflat" onclick="toggleCheckbox('cb-runflat', 'cb-master', this)"><input type="checkbox" id="cb-runflat"><div class="addon-text">Профиль 55 и ниже / RunFlat / Датчики давления (+50% к монтажу/демонтажу)</div></div>
+        <div class="addon-row" id="row-master" onclick="toggleCheckbox('cb-master', 'cb-runflat', this)"><input type="checkbox" id="cb-master"><div class="addon-text">Увеличенная сложность работ (+50% к общему чеку)</div></div>
+    </div>
+    <div class="payment-buttons">
+        <button class="btn-pay btn-cash" id="btn-pay-cash" onclick="processPayment('cash')" disabled>Наличные</button>
+        <button class="btn-pay btn-split" id="btn-pay-split" onclick="openSplitModal()" disabled>Сплит</button>
+        <button class="btn-pay btn-transfer" id="btn-pay-transfer" onclick="processPayment('transfer')" disabled>Перевод</button>
+    </div>
+    <div class="nav-buttons">
+        <button class="btn-nav btn-back" onclick="changeStep(2)">Назад</button>
+    </div>
+</div>
+<div class="fixed-total-bar">
+    <div class="total-info"><div class="total-title">Итого к оплате</div><div class="total-amount" id="total-price">0 руб</div></div>
+    <button class="btn-reset" onclick="resetAll()">Сброс</button>
+</div>
+<div class="modal-overlay" id="custom-modal">
+    <div class="modal-content">
+        <div id="custom-type-select">
+            <h2 style="margin-bottom: 15px;">Другая услуга</h2>
+            <div class="payment-buttons" style="margin-top: 0; border: none; padding-top: 0;">
+                <button class="btn-pay btn-cash" id="btn-custom-cash" onclick="showCustomAmountInput('cash')" disabled>Наличные</button>
+                <button class="btn-pay btn-transfer" id="btn-custom-transfer" onclick="showCustomAmountInput('transfer')" disabled>Перевод</button>
+            </div>
+            <button class="btn-nav btn-back" style="margin-top: 10px;" onclick="closeCustomModal()">Закрыть</button>
+        </div>
+        <div id="custom-amount-input" style="display: none;">
+            <h2 style="margin-bottom: 15px;">Другая услуга</h2>
+            <p style="font-size: 14px; color: #aaa; margin-bottom: 5px; text-align: left;">Введите сумму:</p>
+            <input type="number" id="custom-amount" class="pay-input" placeholder="0" oninput="updateCustomConfirmBtn()">
+            <div class="nav-buttons" style="margin-top: 0;">
+                <button class="btn-nav btn-back" onclick="showCustomTypeSelect()">Назад</button>
+                <button class="btn-nav btn-next" id="btn-custom-confirm" onclick="processCustomPayment()" disabled>Оплатить</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal-overlay" id="split-modal">
+    <div class="modal-content">
+        <h2 style="margin-bottom: 15px;">Сплит: <span id="split-total">0</span> руб</h2>
+        <p style="font-size: 14px; color: #aaa; margin-bottom: 5px; text-align: left;">Наличными:</p>
+        <input type="number" id="split-cash" class="pay-input" placeholder="0" oninput="updateSplitTransfer()">
+        <p style="font-size: 14px; color: #aaa; margin-bottom: 5px; text-align: left;">Переводом:</p>
+        <input type="number" id="split-transfer" class="pay-input" placeholder="0" oninput="updateSplitCash()">
+        <div class="nav-buttons">
+            <button class="btn-nav btn-back" onclick="closeSplitModal()">Отмена</button>
+            <button class="btn-nav btn-next" onclick="confirmSplitPayment()">Оплатить</button>
+        </div>
+    </div>
+</div>
+<div class="modal-overlay" id="open-shift-modal">
+    <div class="modal-content">
+        <h2 style="margin-bottom: 15px;">Кто на смене?</h2>
+        <div class="nav-buttons">
+            <button class="btn-nav btn-next" style="background: #1565c0;" onclick="openShift('Вадим')">Вадим</button>
+            <button class="btn-nav btn-next" style="background: #6a1b9a;" onclick="openShift('Дима')">Дима</button>
+        </div>
+        <button class="btn-nav btn-back" style="margin-top: 10px;" onclick="closeOpenShiftModal()">Отмена</button>
+    </div>
+</div>
+<div class="modal-overlay" id="close-confirm-modal">
+    <div class="modal-content">
+        <h2 style="margin-bottom: 15px;">Закрыть смену?</h2>
+        <p style="font-size: 16px; color: #aaa; margin-bottom: 20px;">Вы уверены, что хотите закрыть смену и снять отчет?</p>
+        <div class="nav-buttons">
+            <button class="btn-nav btn-back" onclick="closeConfirmModal()">Нет</button>
+            <button class="btn-nav btn-next" style="background: #e53935;" onclick="confirmCloseShift()">Да</button>
+        </div>
+    </div>
+</div>
+<div class="modal-overlay" id="undo-confirm-modal" style="z-index: 300;">
+    <div class="modal-content">
+        <h2 style="margin-bottom: 15px;">Отменить оплату?</h2>
+        <p style="font-size: 16px; color: #aaa; margin-bottom: 20px;">Вы уверены, что хотите отменить последнюю проведенную оплату?</p>
+        <div class="nav-buttons">
+            <button class="btn-nav btn-back" onclick="closeUndoConfirmModal()">Нет</button>
+            <button class="btn-nav btn-next" style="background: #e53935;" onclick="confirmUndo()">Да</button>
+        </div>
+    </div>
+</div>
+<div class="modal-overlay" id="expenses-modal" style="z-index: 300;">
+    <div class="modal-content">
+        <h2 style="margin-bottom: 15px;">Прочие расходы</h2>
+        <p style="font-size: 16px; color: #aaa; margin-bottom: 20px;">Введите сумму (расходники, инструмент и т.д.). Сумма будет вычтена из доли шефа.</p>
+        <input type="number" id="expenses-amount" class="pay-input" placeholder="0">
+        <div class="nav-buttons">
+            <button class="btn-nav btn-back" onclick="closeExpensesModal()">Отмена</button>
+            <button class="btn-nav btn-next" style="background: #00838f;" onclick="addExpense()">Добавить</button>
+        </div>
+    </div>
+</div>
+<div class="modal-overlay" id="salary-modal">
+    <div class="modal-content">
+        <h2 style="margin-bottom: 15px;">Текущая касса</h2>
+        <div class="salary-box" id="salary-text"></div>
+        <button class="btn-nav btn-back" onclick="closeSalaryModal()">Закрыть</button>
+    </div>
+</div>
+<div class="modal-overlay" id="report-modal">
+    <div class="modal-content">
+        <h2 style="margin-bottom: 15px;" id="modal-title">Отчет по смене</h2>
+        <textarea class="report-textbox" id="report-text" readonly></textarea>
+        <button class="btn-share-full" style="background-color: #ff9800; margin-top: 10px;" onclick="showUndoConfirmModal()">Отменить последнюю оплату</button>
+        <button class="btn-share-full" style="background-color: #00838f; margin-top: 10px;" onclick="showExpensesModal()">Прочие расходы</button>
+        <button class="btn-share-full" id="btn-download-journal" style="background-color: #5c6bc0; margin-top: 10px; display: none;" onclick="downloadJournal()">Скачать журнал</button>
+        <button class="btn-share-full" style="background-color: #e53935; margin-top: 10px;" onclick="closeReportModal()">Закрыть</button>
+    </div>
+</div>
+
+<script>
+    var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxiqxOD5Fuj8FYLp3OEg5HKTbr1YS2gT7Dxp0BywWnoROYW85rkjD3clJc7dvfaVpJqiw/exec';
+    var CLOUD_PASS = '607201';
+
+    var pricing = {
+        r16: { remove_install: 150, montage: 100, demontage: 100, balance: 200, packages: { full: 2200, change_bal: 1400, change_nobal: 600 } },
+        suv: { remove_install: 200, montage: 150, demontage: 150, balance: 250, packages: { full: 3000, change_bal: 1800, change_nobal: 800 } },
+        gazelle: { remove_install: 200, sparka: 300, montage: 200, demontage: 200, balance: 250, packages: { 4: { full: 3400, change_bal: 1800, change_nobal: 800 }, 6: { full: 4900, change_bal: 2500, change_nobal: 1000 } } },
+        r19_20: { remove_install: 250, montage: 250, demontage: 250, balance: 300, packages: { full: 4200, change_bal: 2200, change_nobal: 1000 } }
+    };
+    var addonPrices = { seal: 50, harness: 200, valve: 50, valve_sensor: 300, patch: 500 };
+
+    // Транспорт: планшет (Android-мост) или iOS (fetch). Фолбэк автоматический.
+    var isAndroidBridge = (typeof Android !== 'undefined' && Android.syncPending);
+    var iosFetchBusy = false;
+
+    var state = {
+        currentStep: 1, carType: null, jobType: null, gazelleWheels: 4,
+        counts: { remove_install: 0, sparka: 0, montage: 0, demontage: 0, balance: 0 },
+        addons: { seal: 0, harness: 0, valve: 0, valve_sensor: 0, patch: 0 },
+        weights: 0, masterShare: 0, bossShare: 0,
+        isQuickService: false, quickName: '', quickPrice: 0
+    };
+
+    var shift = {
+        isOpen: false, masterName: null, openDate: null,
+        totalCash: 0, totalTransfer: 0, masterSalary: 0, bossShare: 0, expenses: 0,
+        transactions: []
+    };
+
+    var splitModalTotal = 0;
+    var customPaymentType = '';
+    var txCounter = 0;
+
+    // ===== ОФЛАЙН-ОЧЕРЕДЬ СОБЫТИЙ =====
+    var eventQueue = [];
+    var queueTimer = null;
+
+    function loadEventQueue() {
+        var saved = localStorage.getItem('shino_pending');
+        if (saved) { try { eventQueue = JSON.parse(saved); } catch(e) { eventQueue = []; } }
+        var known = { open: 1, tx: 1, undo: 1, expense: 1, close: 1 };
+        var clean = [];
+        for (var i = 0; i < eventQueue.length; i++) {
+            if (eventQueue[i] && known[eventQueue[i].type]) clean.push(eventQueue[i]);
+        }
+        eventQueue = clean;
+        saveEventQueue();
+    }
+    function saveEventQueue() { localStorage.setItem('shino_pending', JSON.stringify(eventQueue)); }
+    function updateJournalButton() {
+        var btn = document.getElementById('btn-history');
+        if (!btn) return;
+        if (eventQueue.length > 0) { btn.classList.add('unsent'); }
+        else { btn.classList.remove('unsent'); }
+    }
+    function pushEvent(ev) {
+        eventQueue.push(ev);
+        saveEventQueue();
+        updateJournalButton();
+        ensureQueueTimer();
+    }
+    function resendPending() {
+        if (eventQueue.length === 0) {
+            if (queueTimer) { clearInterval(queueTimer); queueTimer = null; }
+            return;
+        }
+        if (isAndroidBridge) {
+            Android.syncPending(JSON.stringify(eventQueue));
+        } else {
+            iosResendPending();
+        }
+    }
+    function ensureQueueTimer() {
+        if (queueTimer) return;
+        queueTimer = setInterval(function() { resendPending(); }, 60000);
+    }
+
+    // ===== ТРАНСПОРТ iOS: события по одному, строго по порядку =====
+    function eventToParams(ev) {
+        var p = {};
+        p.pass = CLOUD_PASS;
+        if (ev.type === 'open') {
+            p.action = 'open'; p.master = ev.master; p.openDate = String(ev.openDate);
+        } else if (ev.type === 'tx') {
+            p.action = 'add_transaction'; p.id = ev.id; p.type = ev.payType;
+            p.amount = String(ev.amount); p.masterShare = String(ev.masterShare);
+            p.bossShare = String(ev.bossShare); p.time = String(ev.time);
+        } else if (ev.type === 'undo') {
+            p.action = 'undo_transaction'; p.id = ev.id;
+        } else if (ev.type === 'expense') {
+            p.action = 'add_expense'; p.id = ev.id; p.amount = String(ev.amount);
+        } else if (ev.type === 'close') {
+            p.action = 'close'; p.master = ev.master;
+            p.openDate = String(ev.openDate); p.closeDate = String(ev.closeDate);
+        } else {
+            return null;
+        }
+        return p;
+    }
+
+    function iosResendPending() {
+        if (iosFetchBusy || eventQueue.length === 0) return;
+        iosFetchBusy = true;
+        iosSendOne(0);
+    }
+
+    function iosSendOne(idx) {
+        if (idx >= eventQueue.length) {
+            // вся очередь отправлена — запросить базу для подтверждения
+            iosFetchBusy = false;
+            fetchJournalFromServer();
+            return;
+        }
+        var params = eventToParams(eventQueue[idx]);
+        if (!params) { iosSendOne(idx + 1); return; }
+        var usp = new URLSearchParams();
+        for (var key in params) {
+            if (params.hasOwnProperty(key)) usp.set(key, params[key]);
+        }
+        fetch(SCRIPT_URL, { method: 'POST', body: usp })
+            .then(function(r) { if (!r.ok) throw new Error('http'); return r.text(); })
+            .then(function() { iosSendOne(idx + 1); }) // успех — следующее событие
+            .catch(function() {
+                // сеть умерла — стоп, остальное на следующем такте таймера
+                iosFetchBusy = false;
+            });
+    }
+
+    function liveMatchesShift(db, master, openDate) {
+        return !!(db.live && db.live.isOpen && db.live.masterName === master
+            && Number(db.live.openDate) === Number(openDate));
+    }
+    function journalHasShift(db, master, openDate) {
+        if (!db.journal) return false;
+        for (var i = 0; i < db.journal.length; i++) {
+            if (db.journal[i].masterName === master
+                && Number(db.journal[i].openDate) === Number(openDate)) return true;
+        }
+        return false;
+    }
+    function findTxAnywhere(db, txId) {
+        var i, t;
+        if (db.live && db.live.transactions) {
+            for (i = 0; i < db.live.transactions.length; i++) {
+                if (String(db.live.transactions[i].id) === String(txId)) return db.live.transactions[i];
+            }
+        }
+        if (db.journal) {
+            for (i = 0; i < db.journal.length; i++) {
+                var tr = db.journal[i].transactions;
+                if (!tr) continue;
+                for (t = 0; t < tr.length; t++) {
+                    if (String(tr[t].id) === String(txId)) return tr[t];
+                }
+            }
+        }
+        return null;
+    }
+    function expenseKnownInDb(db, eId) {
+        var i, k;
+        if (db.live && db.live.expenseIds) {
+            for (i = 0; i < db.live.expenseIds.length; i++) {
+                if (String(db.live.expenseIds[i]) === String(eId)) return true;
+            }
+        }
+        if (db.journal) {
+            for (i = 0; i < db.journal.length; i++) {
+                var ids = db.journal[i].expenseIds;
+                if (!ids) continue;
+                for (k = 0; k < ids.length; k++) {
+                    if (String(ids[k]) === String(eId)) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    function confirmEvents(db) {
+        if (eventQueue.length === 0) return;
+        var remaining = [];
+        for (var i = 0; i < eventQueue.length; i++) {
+            var ev = eventQueue[i];
+            var confirmed = false;
+            if (ev.type === 'open') {
+                confirmed = liveMatchesShift(db, ev.master, ev.openDate)
+                         || journalHasShift(db, ev.master, ev.openDate);
+            } else if (ev.type === 'tx') {
+                confirmed = !!findTxAnywhere(db, ev.id);
+            } else if (ev.type === 'undo') {
+                confirmed = !findTxAnywhere(db, ev.id);
+            } else if (ev.type === 'expense') {
+                confirmed = expenseKnownInDb(db, ev.id);
+            } else if (ev.type === 'close') {
+                confirmed = !liveMatchesShift(db, ev.master, ev.openDate);
+            }
+            if (!confirmed) remaining.push(ev);
+        }
+        if (remaining.length !== eventQueue.length) {
+            eventQueue = remaining;
+            saveEventQueue();
+            updateJournalButton();
+        }
+    }
+    // ===== КОНЕЦ ОФЛАЙН-ОЧЕРЕДИ =====
+
+    function formatDateTime(d) {
+        var day = d.getDate(); var month = d.getMonth() + 1; var year = d.getFullYear();
+        var hours = d.getHours(); var minutes = d.getMinutes();
+        if (day < 10) day = '0' + day; if (month < 10) month = '0' + month;
+        if (hours < 10) hours = '0' + hours; if (minutes < 10) minutes = '0' + minutes;
+        return day + '.' + month + '.' + year + ', ' + hours + ':' + minutes;
+    }
+    function formatTime(d) {
+        var hours = d.getHours(); var minutes = d.getMinutes();
+        if (hours < 10) hours = '0' + hours; if (minutes < 10) minutes = '0' + minutes;
+        return hours + ':' + minutes;
+    }
+
+    function loadShift() {
+        var saved = localStorage.getItem('shino_shift');
+        if (saved) { try { shift = JSON.parse(saved); } catch(e) {} }
+        if (!shift.transactions) shift.transactions = [];
+        if (!shift.expenses) shift.expenses = 0;
+        recalcLocalTotals();
+        updateShiftUI();
+        fetchJournalFromServer();
+    }
+    function saveShift() { localStorage.setItem('shino_shift', JSON.stringify(shift)); }
+
+    function recalcLocalTotals() {
+        var tCash = 0, tTransfer = 0, tSalary = 0, tBoss = 0;
+        for (var i = 0; i < shift.transactions.length; i++) {
+            var t = shift.transactions[i];
+            if (t.type === 'cash') tCash += t.amount;
+            if (t.type === 'transfer') tTransfer += t.amount;
+            tSalary += t.masterShare;
+            tBoss += t.bossShare;
+        }
+        shift.totalCash = tCash; shift.totalTransfer = tTransfer;
+        shift.masterSalary = tSalary; shift.bossShare = tBoss;
+    }
+
+    function updateShiftUI() {
+        var statusEl = document.getElementById('shift-status');
+        var amountEl = document.getElementById('shift-revenue');
+        var btnEl = document.getElementById('btn-shift');
+        var btnSalary = document.getElementById('btn-salary');
+        var btnCash = document.getElementById('btn-pay-cash');
+        var btnTransfer = document.getElementById('btn-pay-transfer');
+        var btnSplit = document.getElementById('btn-pay-split');
+        var btnCashQuick = document.getElementById('btn-pay-cash-quick');
+        var btnTransferQuick = document.getElementById('btn-pay-transfer-quick');
+        var btnSplitQuick = document.getElementById('btn-pay-split-quick');
+        var btnCC = document.getElementById('btn-custom-cash');
+        var btnCT = document.getElementById('btn-custom-transfer');
+        if (shift.isOpen) {
+            statusEl.innerText = 'МАСТЕР: ' + shift.masterName.toUpperCase();
+            amountEl.innerText = (shift.totalCash + shift.totalTransfer) + ' руб';
+            btnEl.innerText = 'Закрыть';
+            btnEl.classList.remove('closed');
+            btnEl.onclick = showCloseConfirmModal;
+            btnSalary.style.display = 'block';
+            if(btnCash) btnCash.disabled = false;
+            if(btnTransfer) btnTransfer.disabled = false;
+            if(btnSplit) btnSplit.disabled = false;
+            if(btnCashQuick) btnCashQuick.disabled = false;
+            if(btnTransferQuick) btnTransferQuick.disabled = false;
+            if(btnSplitQuick) btnSplitQuick.disabled = false;
+            if(btnCC) btnCC.disabled = false;
+            if(btnCT) btnCT.disabled = false;
+        } else {
+            statusEl.innerText = 'СМЕНА ЗАКРЫТА';
+            amountEl.innerText = '0 руб';
+            btnEl.innerText = 'Открыть смену';
+            btnEl.classList.add('closed');
+            btnEl.onclick = showOpenShiftModal;
+            btnSalary.style.display = 'none';
+            if(btnCash) btnCash.disabled = true;
+            if(btnTransfer) btnTransfer.disabled = true;
+            if(btnSplit) btnSplit.disabled = true;
+            if(btnCashQuick) btnCashQuick.disabled = true;
+            if(btnTransferQuick) btnTransferQuick.disabled = true;
+            if(btnSplitQuick) btnSplitQuick.disabled = true;
+            if(btnCC) btnCC.disabled = true;
+            if(btnCT) btnCT.disabled = true;
+        }
+    }
+
+    function showOpenShiftModal() { document.getElementById('open-shift-modal').style.display = 'flex'; }
+    function closeOpenShiftModal() { document.getElementById('open-shift-modal').style.display = 'none'; }
+    function showCloseConfirmModal() { document.getElementById('close-confirm-modal').style.display = 'flex'; }
+    function closeConfirmModal() { document.getElementById('close-confirm-modal').style.display = 'none'; }
+
+    function confirmCloseShift() {
+        closeConfirmModal();
+        closeShift();
+    }
+
+    function openShift(name) {
+        shift.masterName = name;
+        shift.openDate = new Date().getTime();
+        shift.isOpen = true;
+        shift.transactions = [];
+        shift.expenses = 0;
+        recalcLocalTotals();
+        saveShift();
+        updateShiftUI();
+        closeOpenShiftModal();
+        resetAll();
+
+        pushEvent({ type: 'open', master: name, openDate: shift.openDate });
+        resendPending();
+    }
+
+    function showCurrentSalary() {
+        recalcLocalTotals();
+        var text = 'Мастер: ' + shift.masterName + '\nЗаработано за смену: ' + shift.masterSalary + ' руб\n\nНаличными в кассе: ' + shift.totalCash + ' руб\nПереводами: ' + shift.totalTransfer + ' руб';
+        document.getElementById('salary-text').innerText = text;
+        document.getElementById('salary-modal').style.display = 'flex';
+    }
+    function closeSalaryModal() { document.getElementById('salary-modal').style.display = 'none'; }
+
+    function generateLocalReport() {
+        recalcLocalTotals();
+        var totalRevenue = shift.totalCash + shift.totalTransfer;
+        var roundedMasterSalary = Math.ceil(shift.masterSalary / 50) * 50;
+        var expenses = shift.expenses || 0;
+        var bossShareFinal = totalRevenue - roundedMasterSalary - expenses;
+        var reportText = '=== ОТЧЕТ ПО СМЕНЕ ===\n';
+        reportText += 'Мастер: ' + shift.masterName + '\n';
+        reportText += 'Открытие смены: ' + formatDateTime(new Date(shift.openDate)) + '\n';
+        reportText += 'Закрытие смены: ' + formatDateTime(new Date()) + '\n';
+        reportText += '-----------------------\n';
+        reportText += 'Общая выручка: ' + totalRevenue + ' руб\n';
+        reportText += 'Наличными: ' + shift.totalCash + ' руб\n';
+        reportText += 'Переводами: ' + shift.totalTransfer + ' руб\n';
+        reportText += '-----------------------\n';
+        var tLogs = shift.transactions.filter(function(t){ return t.type === 'transfer'; });
+        if (tLogs.length > 0) {
+            reportText += 'Лог переводов:\n';
+            for(var i=0; i<tLogs.length; i++) {
+                reportText += '  ' + formatTime(new Date(tLogs[i].time)) + ' - ' + tLogs[i].amount + ' руб\n';
+            }
+            reportText += '-----------------------\n';
+        }
+        if (expenses > 0) {
+            reportText += 'Прочие расходы: ' + expenses + ' руб\n';
+            reportText += '-----------------------\n';
+        }
+        reportText += 'Зарплата мастера: ' + roundedMasterSalary + ' руб\n';
+        reportText += 'Доля шефа: ' + bossShareFinal + ' руб\n';
+        reportText += '-----------------------\n';
+        var bossCashNet = shift.totalCash - roundedMasterSalary - expenses;
+        if (bossCashNet >= 0) {
+            reportText += 'Расчет:\n';
+            reportText += 'Мастер забирает из кассы: ' + roundedMasterSalary + ' руб\n';
+            reportText += 'Шеф забирает из кассы: ' + bossCashNet + ' руб\n';
+            reportText += '(Переводы ' + shift.totalTransfer + ' руб уже на карте шефа)\n';
+        } else {
+            var debt = Math.abs(bossCashNet);
+            reportText += 'Расчет:\n';
+            reportText += 'Мастер забирает наличку: ' + shift.totalCash + ' руб\n';
+            reportText += 'Шеф доплачивает мастеру: ' + debt + ' руб\n';
+            reportText += '(Переводы ' + shift.totalTransfer + ' руб на карте шефа)\n';
+        }
+        return reportText;
+    }
+
+    function closeShift() {
+        var reportText = generateLocalReport();
+        document.getElementById('modal-title').innerText = "Отчет по смене";
+        document.getElementById('report-text').value = reportText;
+        document.getElementById('report-modal').style.display = 'flex';
+        var history = localStorage.getItem('shino_history');
+        var historyArr = history ? JSON.parse(history) : [];
+        historyArr.push(reportText);
+        localStorage.setItem('shino_history', JSON.stringify(historyArr));
+        var stats = localStorage.getItem('shino_stats');
+        var statsArr = stats ? JSON.parse(stats) : [];
+        var roundedMasterSalary = Math.ceil(shift.masterSalary / 50) * 50;
+        statsArr.push({ time: new Date().getTime(), bossShare: (shift.totalCash + shift.totalTransfer) - roundedMasterSalary - shift.expenses, totalTransfer: shift.totalTransfer });
+        localStorage.setItem('shino_stats', JSON.stringify(statsArr));
+
+        // Планшет: файл в Documents/Шинка. iOS: кнопка "Скачать журнал" в отчёте.
+        if (isAndroidBridge && typeof Android.saveJournal !== 'undefined') {
+            var fileContent = "=== ЖУРНАЛ СМЕН ШИНОМОНТАЖА ===\n\n";
+            for (var i = 0; i < historyArr.length; i++) {
+                fileContent += historyArr[i] + "\n===============================\n\n";
+            }
+            Android.saveJournal(btoa(unescape(encodeURIComponent(fileContent))));
+        }
+
+        var closeDate = new Date().getTime();
+        pushEvent({ type: 'close', master: shift.masterName, openDate: shift.openDate, closeDate: closeDate });
+
+        shift.isOpen = false;
+        shift.masterName = null;
+        shift.openDate = null;
+        shift.transactions = [];
+        shift.expenses = 0;
+        recalcLocalTotals();
+        saveShift();
+        updateShiftUI();
+        resendPending();
+    }
+
+    // iOS: сохранение журнала через "Файлы" (планшету не нужно — там автосейв)
+    function downloadJournal() {
+        var text = document.getElementById('report-text').value;
+        if (!text) return;
+        var a = document.createElement('a');
+        a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(text);
+        a.download = 'Журнал_Шиномонтаж.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    function showHistory() {
+        fetchJournalFromServer();
+        var history = localStorage.getItem('shino_history');
+        var reportText = "История смен пуста.\n\nЗакройте первую смену, чтобы здесь появился отчет.";
+        if (history) {
+            var historyArr = JSON.parse(history);
+            reportText = "=== ЖУРНАЛ СМЕН ШИНОМОНТАЖА ===\n\n";
+            for (var i = historyArr.length - 1; i >= 0; i--) {
+                reportText += historyArr[i] + "\n===============================\n\n";
+            }
+        }
+        document.getElementById('modal-title').innerText = "Журнал смен";
+        document.getElementById('report-text').value = reportText;
+        var dl = document.getElementById('btn-download-journal');
+        if (dl) { dl.style.display = isAndroidBridge ? 'none' : 'block'; }
+        document.getElementById('report-modal').style.display = 'flex';
+    }
+    function closeReportModal() { document.getElementById('report-modal').style.display = 'none'; }
+
+    function showUndoConfirmModal() {
+        if (!shift.isOpen) { alert('Смена закрыта! Отмена невозможна.'); return; }
+        if (shift.transactions.length === 0) { alert('Нет оплат для отмены.'); return; }
+        document.getElementById('undo-confirm-modal').style.display = 'flex';
+    }
+    function closeUndoConfirmModal() { document.getElementById('undo-confirm-modal').style.display = 'none'; }
+
+    function confirmUndo() {
+        closeUndoConfirmModal();
+        var lastTrans = shift.transactions.pop();
+
+        pushEvent({ type: 'undo', id: lastTrans.id });
+
+        recalcLocalTotals();
+        saveShift();
+        updateShiftUI();
+        alert('Последняя оплата успешно отменена!');
+        closeReportModal();
+        resendPending();
+    }
+
+    function showExpensesModal() {
+        if (!shift.isOpen) { alert('Смена закрыта! Добавление расходов невозможно.'); return; }
+        document.getElementById('expenses-amount').value = '';
+        document.getElementById('expenses-modal').style.display = 'flex';
+    }
+    function closeExpensesModal() { document.getElementById('expenses-modal').style.display = 'none'; }
+    function addExpense() {
+        var amount = parseInt(document.getElementById('expenses-amount').value) || 0;
+        if (amount <= 0) { alert('Введите корректную сумму!'); return; }
+        shift.expenses += amount;
+        saveShift();
+
+        txCounter++;
+        pushEvent({ type: 'expense', id: 'exp_' + new Date().getTime() + '_' + txCounter, amount: amount, master: shift.masterName, openDate: shift.openDate });
+
+        alert('Расход ' + amount + ' руб добавлен.');
+        closeExpensesModal();
+        resendPending();
+    }
+
+    function fetchJournalFromServer() {
+        if (isAndroidBridge) {
+            if (typeof Android.fetchJournal !== 'undefined') { Android.fetchJournal(); }
+            return;
+        }
+        fetch(SCRIPT_URL + '?mode=fetch_json', { method: 'GET', cache: 'no-store' })
+            .then(function(r) { if (!r.ok) throw new Error('http'); return r.json(); })
+            .then(function(db) { handleJournalFetch(JSON.stringify(db)); })
+            .catch(function() {});
+    }
+
+    window.handleJournalFetch = function(jsonStr) {
+        try {
+            var db = JSON.parse(jsonStr);
+
+            confirmEvents(db);
+
+            if (eventQueue.length === 0 && db.live && db.live.isOpen && shift.isOpen
+                && shift.masterName === db.live.masterName
+                && Number(shift.openDate) === Number(db.live.openDate)) {
+                shift.transactions = db.live.transactions;
+                shift.expenses = db.live.expenses || 0;
+                recalcLocalTotals();
+                saveShift();
+                updateShiftUI();
+            }
+
+            if (db.journal) {
+                var historyArr = [];
+                var statsArr = [];
+                for (var i = 0; i < db.journal.length; i++) {
+                    var s = db.journal[i];
+                    historyArr.push(s.report);
+                    statsArr.push({ time: s.id, bossShare: s.bossShare, totalTransfer: s.totalTransfer });
+                }
+                localStorage.setItem('shino_history', JSON.stringify(historyArr));
+                localStorage.setItem('shino_stats', JSON.stringify(statsArr));
+            }
+        } catch(e) {}
+    };
+
+    function addTransactionToShift(type, amount, masterShare, bossShare) {
+        txCounter++;
+        var tId = String(new Date().getTime()) + '-' + txCounter;
+        var transaction = {
+            id: tId, type: type, amount: amount,
+            masterShare: masterShare, bossShare: bossShare,
+            time: new Date().getTime()
+        };
+        shift.transactions.push(transaction);
+        recalcLocalTotals();
+        saveShift();
+        updateShiftUI();
+
+        pushEvent({
+            type: 'tx', id: tId, payType: type, amount: amount,
+            masterShare: masterShare, bossShare: bossShare, time: transaction.time
+        });
+        resendPending();
+    }
+
+    function changeStep(targetStep) {
+        if (targetStep === 2 && !state.carType) return;
+        if (targetStep === 3 && !state.jobType) return;
+        var panels = document.querySelectorAll('.step-panel');
+        for (var i = 0; i < panels.length; i++) { panels[i].classList.remove('active'); }
+        document.getElementById('panel-' + targetStep).classList.add('active');
+        var dots = document.querySelectorAll('.step-dot');
+        for (var j = 0; j < dots.length; j++) {
+            var stepNum = j + 1;
+            dots[j].classList.remove('active', 'completed');
+            if (stepNum === targetStep) dots[j].classList.add('active');
+            else if (stepNum < targetStep) dots[j].classList.add('completed');
+        }
+        state.currentStep = targetStep;
+        window.scrollTo(0, 0);
+    }
+
+    function selectCarType(type, element) {
+        state.isQuickService = false;
+        state.carType = type;
+        var btns = document.querySelectorAll('.btn-car');
+        for (var i = 0; i < btns.length; i++) { btns[i].classList.remove('active'); }
+        element.classList.add('active');
+        document.getElementById('quick-service-pay').style.display = 'none';
+        if (type === 'gazelle') {
+            document.getElementById('row-sparka').style.display = 'flex';
+            document.getElementById('gazelle-wheels-selector').style.display = 'block';
+        } else {
+            document.getElementById('row-sparka').style.display = 'none';
+            document.getElementById('gazelle-wheels-selector').style.display = 'none';
+            state.counts.sparka = 0;
+            document.getElementById('val-sparka').innerText = 0;
+        }
+        calculateTotal();
+        setTimeout(function() { changeStep(2); }, 200);
+    }
+
+    function selectQuickService(name, price) {
+        state.isQuickService = true;
+        state.quickName = name;
+        state.quickPrice = price;
+        state.carType = null;
+        state.jobType = null;
+        var btns = document.querySelectorAll('.btn-car, .btn-job');
+        for (var i = 0; i < btns.length; i++) { btns[i].classList.remove('active'); }
+        document.getElementById('quick-service-pay').style.display = 'block';
+        calculateTotal();
+    }
+
+    function processQuickPayment(type) {
+        if (!shift.isOpen) { alert('Сначала откройте смену!'); return; }
+        var total = state.quickPrice;
+        if (total === 0) { return; }
+        var masterShare = Math.round(total * 0.4);
+        var bossShare = Math.round(total * 0.6);
+        addTransactionToShift(type, total, masterShare, bossShare);
+        resetAll();
+    }
+
+    function showCustomModal() {
+        showCustomTypeSelect();
+        document.getElementById('custom-modal').style.display = 'flex';
+    }
+    function closeCustomModal() { document.getElementById('custom-modal').style.display = 'none'; }
+    function showCustomTypeSelect() {
+        document.getElementById('custom-type-select').style.display = 'block';
+        document.getElementById('custom-amount-input').style.display = 'none';
+        document.getElementById('custom-amount').value = '';
+    }
+    function showCustomAmountInput(type) {
+        customPaymentType = type;
+        document.getElementById('custom-type-select').style.display = 'none';
+        document.getElementById('custom-amount-input').style.display = 'block';
+        document.getElementById('btn-custom-confirm').disabled = true;
+    }
+    function updateCustomConfirmBtn() {
+        var amount = parseInt(document.getElementById('custom-amount').value) || 0;
+        document.getElementById('btn-custom-confirm').disabled = (amount <= 0);
+    }
+    function processCustomPayment() {
+        if (!shift.isOpen) { alert('Сначала откройте смену!'); return; }
+        var amount = parseInt(document.getElementById('custom-amount').value) || 0;
+        if (amount <= 0) { return; }
+        var masterShare = Math.round(amount * 0.4);
+        var bossShare = Math.round(amount * 0.6);
+        addTransactionToShift(customPaymentType, amount, masterShare, bossShare);
+        closeCustomModal();
+        resetAll();
+    }
+
+    function openSplitModal() {
+        if (!shift.isOpen) { alert('Сначала откройте смену!'); return; }
+        splitModalTotal = calculateTotal();
+        if (splitModalTotal === 0) { alert('Расчет равен 0. Сначала выберите услуги.'); return; }
+        document.getElementById('split-total').innerText = splitModalTotal;
+        document.getElementById('split-cash').value = splitModalTotal;
+        document.getElementById('split-transfer').value = 0;
+        document.getElementById('split-modal').style.display = 'flex';
+    }
+    function closeSplitModal() { document.getElementById('split-modal').style.display = 'none'; }
+    function updateSplitTransfer() {
+        var cash = parseInt(document.getElementById('split-cash').value) || 0;
+        if (cash < 0) { cash = 0; }
+        var transfer = splitModalTotal - cash;
+        if (transfer < 0) { transfer = 0; document.getElementById('split-cash').value = splitModalTotal; }
+        document.getElementById('split-transfer').value = transfer;
+    }
+    function updateSplitCash() {
+        var transfer = parseInt(document.getElementById('split-transfer').value) || 0;
+        if (transfer < 0) { transfer = 0; }
+        var cash = splitModalTotal - transfer;
+        if (cash < 0) { cash = 0; document.getElementById('split-transfer').value = splitModalTotal; }
+        document.getElementById('split-cash').value = cash;
+    }
+    function confirmSplitPayment() {
+        var cash = parseInt(document.getElementById('split-cash').value) || 0;
+        var transfer = parseInt(document.getElementById('split-transfer').value) || 0;
+        var masterShare = 0, bossShare = 0;
+        if (state.isQuickService) {
+            masterShare = Math.round(splitModalTotal * 0.4);
+            bossShare = Math.round(splitModalTotal * 0.6);
+        } else {
+            masterShare = state.masterShare;
+            bossShare = state.bossShare;
+        }
+        if (cash > 0) {
+            addTransactionToShift('cash', cash, Math.round(masterShare * (cash / splitModalTotal)), Math.round(bossShare * (cash / splitModalTotal)));
+        }
+        if (transfer > 0) {
+            addTransactionToShift('transfer', transfer, Math.round(masterShare * (transfer / splitModalTotal)), Math.round(bossShare * (transfer / splitModalTotal)));
+        }
+        closeSplitModal();
+        resetAll();
+    }
+
+    function selectJobType(type, element) {
+        state.jobType = type;
+        var btns = document.querySelectorAll('.btn-job');
+        for (var i = 0; i < btns.length; i++) { btns[i].classList.remove('active'); }
+        element.classList.add('active');
+        var pieceFields = document.getElementById('piece-fields');
+        var nextButton = document.getElementById('next-to-3');
+        if (type === 'piece') pieceFields.style.display = 'block';
+        else pieceFields.style.display = 'none';
+        nextButton.style.display = 'block';
+        applyAddonFiltering(type);
+        calculateTotal();
+    }
+
+    function selectGazelleWheels(count, element) {
+        state.gazelleWheels = count;
+        var btns = document.querySelectorAll('.btn-wheels');
+        for (var i = 0; i < btns.length; i++) { btns[i].classList.remove('active'); }
+        element.classList.add('active');
+        calculateTotal();
+    }
+
+    function applyAddonFiltering(jobType) {
+        var sealRow = document.getElementById('row-addon-seal');
+        var patchRow = document.getElementById('row-addon-patch');
+        var weightsRow = document.getElementById('row-addon-weights');
+        sealRow.style.display = 'flex'; patchRow.style.display = 'flex';
+        weightsRow.style.display = 'flex';
+        if (jobType === 'change_bal') {
+            sealRow.style.display = 'none'; patchRow.style.display = 'none';
+            state.addons.seal = 0; state.addons.patch = 0;
+            document.getElementById('val-addon-seal').innerText = 0;
+            document.getElementById('val-addon-patch').innerText = 0;
+        } else if (jobType === 'change_nobal') {
+            sealRow.style.display = 'none'; patchRow.style.display = 'none';
+            weightsRow.style.display = 'none';
+            state.addons.seal = 0; state.addons.patch = 0;
+            state.weights = 0;
+            document.getElementById('val-weights').innerText = 0;
+            document.getElementById('val-addon-seal').innerText = 0;
+            document.getElementById('val-addon-patch').innerText = 0;
+        }
+    }
+
+    function changeCount(field, delta) {
+        state.counts[field] = Math.max(0, state.counts[field] + delta);
+        document.getElementById('val-' + field).innerText = state.counts[field];
+        calculateTotal();
+    }
+
+    function changeAddon(field, delta) {
+        state.addons[field] = Math.max(0, state.addons[field] + delta);
+        document.getElementById('val-addon-' + field).innerText = state.addons[field];
+        calculateTotal();
+    }
+
+    function changeWeight(delta) {
+        state.weights = Math.max(0, state.weights + delta);
+        document.getElementById('val-weights').innerText = state.weights;
+        calculateTotal();
+    }
+
+    function toggleCheckbox(id, otherId, element) {
+        var cb = document.getElementById(id);
+        var otherCb = document.getElementById(otherId);
+        var otherEl = document.getElementById((id === 'cb-runflat') ? 'row-master' : 'row-runflat');
+        cb.checked = !cb.checked;
+        if (cb.checked) {
+            otherCb.checked = false;
+            element.classList.add('active');
+            if (otherEl) otherEl.classList.remove('active');
+        } else {
+            element.classList.remove('active');
+        }
+        calculateTotal();
+    }
+
+    function calculateTotal() {
+        if (state.isQuickService) {
+            document.getElementById('total-price').innerText = state.quickPrice + ' руб';
+            return state.quickPrice;
+        }
+        if (!state.carType || !state.jobType) {
+            document.getElementById('total-price').innerText = '0 руб';
+            return 0;
+        }
+        var basePrice = 0, runflatSurcharge = 0;
+        var carData = pricing[state.carType];
+        var hasRunflat = document.getElementById('cb-runflat').checked;
+        var hasMasterComplexity = document.getElementById('cb-master').checked;
+        if (state.jobType === 'piece') {
+            basePrice += state.counts.remove_install * carData.remove_install;
+            basePrice += state.counts.sparka * (carData.sparka || 0);
+            basePrice += state.counts.montage * carData.montage;
+            basePrice += state.counts.demontage * carData.demontage;
+            basePrice += state.counts.balance * carData.balance;
+            if (hasRunflat) { runflatSurcharge += (state.counts.montage + state.counts.demontage) * carData.montage * 0.5; }
+        } else {
+            if (state.carType === 'gazelle') {
+                basePrice = carData.packages[state.gazelleWheels][state.jobType];
+                if (hasRunflat && (state.jobType === 'full' || state.jobType === 'change_bal')) { runflatSurcharge += state.gazelleWheels * (carData.montage + carData.demontage) * 0.5; }
+            } else {
+                basePrice = carData.packages[state.jobType];
+                if (hasRunflat && (state.jobType === 'full' || state.jobType === 'change_bal')) { runflatSurcharge += 4 * (carData.montage + carData.demontage) * 0.5; }
+            }
+        }
+        var addonsPrice = 0;
+        for (var key in state.addons) { addonsPrice += state.addons[key] * addonPrices[key]; }
+        addonsPrice += state.weights * 1;
+        var costBase = basePrice + addonsPrice;
+        var masterSurcharge = 0;
+        if (hasMasterComplexity) { masterSurcharge = (costBase + runflatSurcharge) * 0.5; }
+        var total = costBase + runflatSurcharge + masterSurcharge;
+        state.masterShare = Math.round((costBase * 0.4) + runflatSurcharge + masterSurcharge);
+        state.bossShare = Math.round(costBase * 0.6);
+        document.getElementById('total-price').innerText = Math.round(total) + ' руб';
+        return Math.round(total);
+    }
+
+    function processPayment(type) {
+        if (!shift.isOpen) { alert('Сначала откройте смену!'); return; }
+        var total = calculateTotal();
+        if (total === 0) { alert('Расчет равен 0. Сначала выберите услуги.'); return; }
+        addTransactionToShift(type, total, state.masterShare, state.bossShare);
+        resetAll();
+    }
+
+    function resetAll() {
+        state = {
+            currentStep: 1, carType: null, jobType: null, gazelleWheels: 4,
+            counts: { remove_install: 0, sparka: 0, montage: 0, demontage: 0, balance: 0 },
+            addons: { seal: 0, harness: 0, valve: 0, valve_sensor: 0, patch: 0 },
+            weights: 0, masterShare: 0, bossShare: 0,
+            isQuickService: false, quickName: '', quickPrice: 0
+        };
+        var btnsCar = document.querySelectorAll('.btn-car, .btn-job');
+        for (var i = 0; i < btnsCar.length; i++) { btnsCar[i].classList.remove('active'); }
+        var vals = document.querySelectorAll('.counter-value');
+        for (var j = 0; j < vals.length; j++) { vals[j].innerText = '0'; }
+        document.getElementById('cb-runflat').checked = false;
+        document.getElementById('cb-master').checked = false;
+        document.getElementById('row-runflat').classList.remove('active');
+        document.getElementById('row-master').classList.remove('active');
+        var btnsWh = document.querySelectorAll('.btn-wheels');
+        for (var k = 0; k < btnsWh.length; k++) { btnsWh[k].classList.remove('active'); }
+        document.getElementById('btn-wh-4').classList.add('active');
+        document.getElementById('piece-fields').style.display = 'none';
+        document.getElementById('gazelle-wheels-selector').style.display = 'none';
+        document.getElementById('next-to-3').style.display = 'none';
+        document.getElementById('quick-service-pay').style.display = 'none';
+        changeStep(1);
+        calculateTotal();
+    }
+
+    // Вспышка кнопок +/-
+    document.addEventListener('click', function(e) {
+        var btn = e.target;
+        while (btn && btn !== document.body) {
+            if (btn.classList && btn.classList.contains('btn-counter')) {
+                btn.classList.add('flash');
+                setTimeout(function() { btn.classList.remove('flash'); }, 200);
+                break;
+            }
+            btn = btn.parentNode;
+        }
+    }, false);
+
+    // iOS: возврат из сворачивания — сразу дослать очередь (таймеры в фоне заморожены)
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') { resendPending(); }
+    });
+
+    // ===== Инициализация =====
+    loadShift();
+    loadEventQueue();
+    updateJournalButton();
+    if (eventQueue.length > 0) { ensureQueueTimer(); resendPending(); }
+</script>
+</body>
+</html>
