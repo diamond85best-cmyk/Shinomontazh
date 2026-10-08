@@ -64,7 +64,7 @@
         .total-title { font-size: 12px; color: #aaaaaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
         .total-amount { font-size: 28px; font-weight: 700; color: #ffffff; }
         .btn-reset { background-color: #e53935; color: #ffffff; border: none; padding: 14px 28px; font-size: 16px; font-weight: 600; border-radius: 8px; cursor: pointer; }
-        /* ФИКС МОДАЛКИ: оверлей скроллится (страховка), контент ограничен экраном */
+        /* ФИКС МОДАЛКИ: контент ограничен экраном, отчёт скроллится */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.85); z-index: 200; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
         .modal-content { background-color: #1e1e1e; border-radius: 12px; padding: 25px; max-width: 500px; width: 100%; text-align: center; max-height: calc(100vh - 40px); display: flex; flex-direction: column; }
         .report-textbox { width: 100%; flex: 1; min-height: 150px; height: 350px; background-color: #121212; color: #e0e0e0; border: 1px solid #333; border-radius: 8px; padding: 15px; font-size: 15px; margin-bottom: 15px; text-align: left; white-space: pre-wrap; overflow-y: auto; -webkit-overflow-scrolling: touch; }
@@ -405,58 +405,55 @@
         }
         return false;
     }
-    function findTxAnywhere(db, txId) {
-        var i, t;
-        if (db.live && db.live.transactions) {
-            for (i = 0; i < db.live.transactions.length; i++) {
-                if (String(db.live.transactions[i].id) === String(txId)) return db.live.transactions[i];
+
+    // ===== ОПТИМИЗАЦИЯ confirmEvents =====
+    // Раньше: для КАЖДОГО события очереди — линейный проход по всей базе
+    // (live + 30 смен журнала) через findTxAnywhere/expenseKnownInDb.
+    // На KitKat это давало фризы на секунды и "красную кнопку" надолго.
+    // Теперь: ОДИН проход по базе строит словари ID, дальше каждая проверка
+    // события — обращение к свойству объекта за O(1).
+    // Словари-объекты вместо Set: чистый ES5, работает на WebView Android 4.4.
+    function confirmEvents(db) {
+        if (eventQueue.length === 0) return;
+
+        // Пред-индекс: все ID транзакций и расходов сервера (live + журнал)
+        var txIds = {};   // id транзакции -> true
+        var expIds = {};  // id расхода -> true
+        var i, k;
+        if (db.live) {
+            if (db.live.transactions) {
+                for (i = 0; i < db.live.transactions.length; i++) {
+                    txIds[String(db.live.transactions[i].id)] = true;
+                }
+            }
+            if (db.live.expenseIds) {
+                for (i = 0; i < db.live.expenseIds.length; i++) {
+                    expIds[String(db.live.expenseIds[i])] = true;
+                }
             }
         }
         if (db.journal) {
             for (i = 0; i < db.journal.length; i++) {
                 var tr = db.journal[i].transactions;
-                if (!tr) continue;
-                for (t = 0; t < tr.length; t++) {
-                    if (String(tr[t].id) === String(txId)) return tr[t];
-                }
-            }
-        }
-        return null;
-    }
-    function expenseKnownInDb(db, eId) {
-        var i, k;
-        if (db.live && db.live.expenseIds) {
-            for (i = 0; i < db.live.expenseIds.length; i++) {
-                if (String(db.live.expenseIds[i]) === String(eId)) return true;
-            }
-        }
-        if (db.journal) {
-            for (i = 0; i < db.journal.length; i++) {
+                if (tr) { for (k = 0; k < tr.length; k++) { txIds[String(tr[k].id)] = true; } }
                 var ids = db.journal[i].expenseIds;
-                if (!ids) continue;
-                for (k = 0; k < ids.length; k++) {
-                    if (String(ids[k]) === String(eId)) return true;
-                }
+                if (ids) { for (k = 0; k < ids.length; k++) { expIds[String(ids[k])] = true; } }
             }
         }
-        return false;
-    }
 
-    function confirmEvents(db) {
-        if (eventQueue.length === 0) return;
         var remaining = [];
-        for (var i = 0; i < eventQueue.length; i++) {
-            var ev = eventQueue[i];
+        for (var j = 0; j < eventQueue.length; j++) {
+            var ev = eventQueue[j];
             var confirmed = false;
             if (ev.type === 'open') {
                 confirmed = liveMatchesShift(db, ev.master, ev.openDate)
                          || journalHasShift(db, ev.master, ev.openDate);
             } else if (ev.type === 'tx') {
-                confirmed = !!findTxAnywhere(db, ev.id);
+                confirmed = txIds[String(ev.id)] === true;
             } else if (ev.type === 'undo') {
-                confirmed = !findTxAnywhere(db, ev.id);
+                confirmed = txIds[String(ev.id)] !== true;
             } else if (ev.type === 'expense') {
-                confirmed = expenseKnownInDb(db, ev.id);
+                confirmed = expIds[String(ev.id)] === true;
             } else if (ev.type === 'close') {
                 confirmed = !liveMatchesShift(db, ev.master, ev.openDate);
             }
@@ -637,7 +634,7 @@
         var reportText = generateLocalReport();
         document.getElementById('modal-title').innerText = "Отчет по смене";
         document.getElementById('report-text').value = reportText;
-        document.getElementById('btn-download-journal').style.display = 'none'; // кнопка только в журнале
+        document.getElementById('btn-download-journal').style.display = 'none';
         document.getElementById('report-modal').style.display = 'flex';
         var history = localStorage.getItem('shino_history');
         var historyArr = history ? JSON.parse(history) : [];
@@ -672,7 +669,7 @@
         resendPending();
     }
 
-    // iOS: сохранение текста журнала через "Файлы"
+    // iOS: сохранение текста через "Файлы"
     function downloadJournal() {
         var text = document.getElementById('report-text').value;
         if (!text) return;
