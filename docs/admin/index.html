@@ -87,6 +87,7 @@
             <div class="app-header">
                 <div class="app-title">Админ Шиномонтаж</div>
                 <div class="header-btns">
+                    <button class="btn-mini" style="background-color:#00838f" onclick="openBookView()">Запись</button>
                     <button class="btn-mini" onclick="refreshNow()">Обновить</button>
                     <button class="btn-mini btn-mini-red" onclick="lockApp()">🔒</button>
                 </div>
@@ -185,9 +186,6 @@
 
     function setLockError(msg) { $('lock-error').textContent = msg; }
 
-    // Проверка пароля без изменений на сервере: doPost сначала проверяет
-    // pass, потом action. Верный пароль + неизвестное действие 'ping'
-    // => "Неизвестное действие" (успех). Неверный => "Ошибка авторизации".
     function tryUnlock() {
         var p = $('pass-input').value;
         if (!p) return;
@@ -210,7 +208,7 @@
             .catch(function() { setLockError('Нет связи с сервером'); });
     }
 
-    // ---------- Сеть ----------
+    // ---------- Сеть: главный экран ----------
 
     function refreshNow() {
         if (fetchInFlight) return;
@@ -218,9 +216,11 @@
         fetch(SCRIPT_URL + '?mode=fetch_json', { method: 'GET', cache: 'no-store' })
             .then(function(r) { if (!r.ok) throw new Error('http'); return r.json(); })
             .then(function(db) {
+                lastDb = db;
                 lastUpdated = new Date();
                 setStatus('Обновлено: ' + lastUpdated.toLocaleTimeString('ru-RU'));
-                render(db);
+                if (document.getElementById('book-slots')) { renderBookDay(); }
+                else { render(db); }
             })
             .catch(function() {
                 setStatus('Нет связи с сервером' + (lastUpdated ? ' (данные на ' + lastUpdated.toLocaleTimeString('ru-RU') + ')' : ''), true);
@@ -253,7 +253,7 @@
             .catch(function() { toast('Ошибка сети'); });
     }
 
-    // ---------- Построение UI ----------
+    // ---------- Построение UI: главный экран ----------
 
     function el(tag, cls, text) {
         var e = document.createElement(tag);
@@ -389,7 +389,7 @@
         }
     }
 
-    // ---------- Модалки ----------
+    // ---------- Модалки оплат ----------
 
     function setPayType(t) {
         payType = t;
@@ -398,7 +398,11 @@
     }
 
     function showPayDialog(title, amount, type, onSave) {
+        cleanupAbf();
         $('pay-title').textContent = title;
+        $('pay-title').style.display = '';
+        $('pay-amount').style.display = '';
+        document.querySelector('#pay-modal .type-toggle').style.display = '';
         $('pay-amount').value = (amount != null) ? String(amount) : '';
         setPayType(type || 'cash');
         payCtx.onSave = onSave;
@@ -440,8 +444,227 @@
         if (e.key === 'Enter') tryUnlock();
     });
 
-    // ---------- Инициализация ----------
+    // ================= ЭКРАН ЗАПИСИ (админ PWA) =================
+    var bookYmd = null;
+    var lastDb = null;
+    var bookActionCtx = { bk: null };
+    var abfCurType = 'car';
+    var WDm = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+    var MGm = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
 
+    function pad2m(n) { return (n < 10 ? '0' : '') + n; }
+    function todayYmd() { var d = new Date(); return d.getFullYear() + '-' + pad2m(d.getMonth() + 1) + '-' + pad2m(d.getDate()); }
+    function ymdLabelOf(ymd) {
+        var p = ymd.split('-');
+        var d = new Date(+p[0], +p[1] - 1, +p[2]);
+        return WDm[d.getDay()] + ', ' + (+p[2]) + ' ' + MGm[d.getMonth()];
+    }
+    function ymdLimit(delta) {
+        var d = new Date(Date.now() + delta * 86400000);
+        return d.getFullYear() + '-' + pad2m(d.getMonth() + 1) + '-' + pad2m(d.getDate());
+    }
+    function escB(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    function openBookView() {
+        var app = $('app');
+        app.innerHTML =
+            '<div class="wrap">' +
+            '<div class="app-header">' +
+            '<div class="app-title">ЗАПИСЬ</div>' +
+            '<div class="header-btns">' +
+            '<button class="btn-mini" id="bk-today" style="display:none;background-color:#00838f" onclick="bookGoToday()">Сегодня</button>' +
+            '<button class="btn-mini" onclick="refreshNow()">Обновить</button>' +
+            '<button class="btn-mini btn-mini-red" onclick="location.reload()">✕</button>' +
+            '</div></div>' +
+            '<div style="display:flex;align-items:center;gap:8px;margin:12px 0 14px 0;">' +
+            '<button class="btn-mini" style="width:52px;font-size:24px;padding:10px 0;" onclick="bookShift(-1)">‹</button>' +
+            '<div id="bv-date" style="flex:1;text-align:center;color:#fff;font-weight:600;font-size:17px;"></div>' +
+            '<button class="btn-mini" style="width:52px;font-size:24px;padding:10px 0;" onclick="bookShift(1)">›</button>' +
+            '</div>' +
+            '<div class="status-line" id="status-line2"></div>' +
+            '<div id="book-slots"></div>' +
+            '</div>';
+        if (bookYmd == null) bookYmd = todayYmd();
+        renderBookDay();
+        refreshNow();
+    }
+
+    function bookGoToday() { bookYmd = todayYmd(); renderBookDay(); }
+
+    function bookShift(delta) {
+        var p = bookYmd.split('-');
+        var d = new Date(+p[0], +p[1] - 1, +p[2]);
+        d.setDate(d.getDate() + delta);
+        var ymd = d.getFullYear() + '-' + pad2m(d.getMonth() + 1) + '-' + pad2m(d.getDate());
+        var lo = ymdLimit(-3), hi = ymdLimit(30);
+        if (ymd < lo) ymd = lo;
+        if (ymd > hi) ymd = hi;
+        bookYmd = ymd;
+        renderBookDay();
+    }
+
+    function renderBookDay() {
+        var el = document.getElementById('bv-date');
+        if (el) el.textContent = ymdLabelOf(bookYmd);
+        var tbtn = document.getElementById('bk-today');
+        if (tbtn) tbtn.style.display = (bookYmd === todayYmd()) ? 'none' : '';
+        var c = document.getElementById('book-slots');
+        if (!c) return;
+        c.innerHTML = '';
+        var sched = (lastDb ? (lastDb.schedule || {}) : {});
+        var list = sched[bookYmd] || [];
+        var occ = {};
+        var i, b;
+        for (i = 0; i < list.length; i++) {
+            b = list[i];
+            if (b.status === 'booked' || b.status === 'done') {
+                for (var h = b.start; h < b.start + b.hours; h++) occ[h] = b;
+            }
+        }
+        for (var hh = 8; hh <= 17; hh++) {
+            b = occ[hh];
+            var row = document.createElement('div');
+            row.className = 'card';
+            row.style.cssText = 'display:flex;align-items:center;padding:10px 12px;';
+            var time = document.createElement('div');
+            time.style.cssText = 'width:62px;color:#4CAF50;font-weight:700;font-size:19px;';
+            time.textContent = hh + ':00';
+            row.appendChild(time);
+            var mid = document.createElement('div');
+            mid.style.cssText = 'flex:1;padding:0 6px;font-size:17px;';
+            if (!b) {
+                mid.style.color = '#4CAF50';
+                mid.textContent = '+ записать';
+                (function(slot) {
+                    row.onclick = function() { adminBookForm(null, slot); };
+                })(hh);
+            } else if (b.start === hh) {
+                var txt = ((b.brand || '—') + ' ' + (b.number || '—')).trim();
+                if (b.status === 'done') {
+                    row.style.opacity = '0.55';
+                    mid.style.color = '#888';
+                    mid.textContent = '✓ сделано: ' + txt;
+                } else {
+                    mid.style.color = '#E0E0E0';
+                    mid.textContent = txt + ' [' + (b.type === 'van' ? '2ч' : '1ч') + ']';
+                    (function(bk) {
+                        row.onclick = function() { adminBookActions(bk); };
+                    })(b);
+                }
+            } else {
+                mid.style.color = '#888';
+                mid.style.fontSize = '13px';
+                mid.textContent = '⤷ 2-й час (' + (b.brand || '—') + ')';
+            }
+            row.appendChild(mid);
+            c.appendChild(row);
+        }
+    }
+
+    // ——— Форма записи (админ) ———
+    function adminBookForm(existing, slot) {
+        var isEdit = !!existing;
+        abfCurType = existing ? existing.type : 'car';
+        cleanupAbf();
+        var modal = document.querySelector('#pay-modal .modal');
+        var html =
+            '<div class="modal-title" id="abf-title" style="margin-bottom:12px;">' + (isEdit ? 'Изменить запись' : 'Новая запись') + '</div>' +
+            '<div style="display:flex;gap:8px;margin-bottom:10px;">' +
+            '<button id="abf-car" class="type-btn" style="flex:1;' + (abfCurType === 'car' ? 'background:#2e7d32;color:#fff;border-color:#2e7d32;' : '') + '" onclick="abfType(\'car\')">Легковая · 1ч</button>' +
+            '<button id="abf-van" class="type-btn" style="flex:1;' + (abfCurType === 'van' ? 'background:#2e7d32;color:#fff;border-color:#2e7d32;' : '') + '" onclick="abfType(\'van\')">Газель · 2ч</button>' +
+            '</div>' +
+            '<input type="number" id="abf-start" class="pay-input" placeholder="Час начала (8–17)" value="' + (existing ? existing.start : slot) + '">' +
+            '<input type="text" id="abf-brand" class="pay-input" style="text-align:left;padding-left:14px;font-size:20px;" placeholder="Марка" value="' + escB(existing ? existing.brand : '') + '">' +
+            '<input type="number" id="abf-number" class="pay-input" placeholder="Госномер (цифры)" value="' + escB(existing ? existing.number : '') + '">' +
+            '<div class="modal-btns" style="margin-top:10px;">' +
+            '<button class="btn btn-grey" onclick="cleanupAbf();closePayModal()">Отмена</button>' +
+            '<button class="btn btn-green" onclick="abfSave(' + (isEdit ? '\'' + existing.id + '\'' : 'null') + ')">Сохранить</button>' +
+            '</div>';
+        // скрываем элементы модалки оплат
+        $('pay-title').style.display = 'none';
+        $('pay-amount').style.display = 'none';
+        document.querySelector('#pay-modal .type-toggle').style.display = 'none';
+        modal.insertAdjacentHTML('afterbegin', html);
+        $('pay-modal').classList.add('open');
+    }
+
+    function abfType(t) {
+        abfCurType = t;
+        var bc = document.getElementById('abf-car'), bv = document.getElementById('abf-van');
+        if (!bc) return;
+        bc.style.cssText = 'flex:1;' + (t === 'car' ? 'background:#2e7d32;color:#fff;border-color:#2e7d32;' : '');
+        bv.style.cssText = 'flex:1;' + (t === 'van' ? 'background:#2e7d32;color:#fff;border-color:#2e7d32;' : '');
+    }
+
+    function cleanupAbf() {
+        ['abf-title','abf-car','abf-van','abf-start','abf-brand','abf-number'].forEach(function(idn) {
+            var e = document.getElementById(idn);
+            if (e && e.parentNode) e.parentNode.removeChild(e);
+        });
+        $('pay-title').style.display = '';
+        $('pay-amount').style.display = '';
+        document.querySelector('#pay-modal .type-toggle').style.display = '';
+    }
+
+    function abfSave(existingId) {
+        var start = parseInt(document.getElementById('abf-start').value, 10);
+        var vtype = abfCurType;
+        var hours = vtype === 'van' ? 2 : 1;
+        var brand = document.getElementById('abf-brand').value.trim();
+        var number = document.getElementById('abf-number').value.trim();
+        if (isNaN(start) || start < 8 || start > 17) { toast('Час 8–17'); return; }
+        if (vtype === 'van' && start > 16) { toast('Газели — старт до 16:00'); return; }
+        if (!brand && !number) { toast('Марка или номер'); return; }
+        var id = existingId || ('admbk' + Date.now());
+        var usp = new URLSearchParams();
+        usp.set('pass', pass); usp.set('action', 'book');
+        usp.set('id', id); usp.set('date', bookYmd);
+        usp.set('start', String(start)); usp.set('hours', String(hours));
+        usp.set('type', vtype); usp.set('brand', brand); usp.set('number', number);
+        fetch(SCRIPT_URL, { method: 'POST', body: usp })
+            .then(function(r) { return r.text(); })
+            .then(function(t) {
+                cleanupAbf(); closePayModal();
+                if (t.trim() === 'OK') { toast('Запись сохранена'); refreshNow(); }
+                else { toast('Ошибка: ' + t); }
+            })
+            .catch(function() { toast('Ошибка сети'); });
+    }
+
+    function adminBookActions(bk) {
+        bookActionCtx.bk = bk;
+        var txt = ((bk.brand || '—') + ' ' + (bk.number || '—')).trim();
+        cleanupAbf();
+        var modal = document.querySelector('#pay-modal .modal');
+        var html =
+            '<div class="modal-title" id="abf-title" style="margin-bottom:12px;">' + escB(txt) + ' · ' + bk.start + ':00–' + (bk.start + bk.hours) + ':00</div>' +
+            '<button class="btn btn-full" style="background:#ff9800;color:#000;margin:4px 0;" onclick="cleanupAbf();adminBookForm(bookActionCtx.bk, ' + bk.start + ')">✏ Изменить (форма)</button>' +
+            '<button class="btn btn-full" style="background:#2e7d32;margin:4px 0;" onclick="abkDo(\'done\')">✓ Сделано</button>' +
+            '<button class="btn btn-full" style="background:#ff9800;color:#000;margin:4px 0;" onclick="abkDo(\'cancelled\')">✕ Отмена записи</button>' +
+            '<button class="btn btn-full" style="background:#e53935;margin:4px 0;" onclick="abkDo(\'noshow\')">! Нет клиента</button>' +
+            '<button class="btn btn-full" style="background:#333333;margin:8px 0 0 0;" onclick="cleanupAbf();closePayModal()">Закрыть</button>';
+        $('pay-title').style.display = 'none';
+        $('pay-amount').style.display = 'none';
+        document.querySelector('#pay-modal .type-toggle').style.display = 'none';
+        modal.insertAdjacentHTML('afterbegin', html);
+        $('pay-modal').classList.add('open');
+    }
+
+    function abkDo(status) {
+        var id = bookActionCtx.bk.id;
+        var usp = new URLSearchParams();
+        usp.set('pass', pass); usp.set('action', 'book_status');
+        usp.set('id', id); usp.set('status', status);
+        fetch(SCRIPT_URL, { method: 'POST', body: usp })
+            .then(function(r) { return r.text(); })
+            .then(function() { cleanupAbf(); closePayModal(); toast('Статус обновлён'); refreshNow(); })
+            .catch(function() { toast('Ошибка сети'); });
+    }
+    // ================= КОНЕЦ ЭКРАНА ЗАПИСИ =================
+
+    // ---------- Инициализация ----------
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').catch(function() {});
     }
