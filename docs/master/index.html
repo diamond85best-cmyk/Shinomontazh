@@ -14,17 +14,18 @@
 
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background-color: #121212; color: #e0e0e0; padding: 70px 20px 120px 20px; width: 100%; max-width: 100%; margin: 0 auto; }
+        body { background-color: #121212; color: #e0e0e0; padding: 70px 20px 175px 20px; width: 100%; max-width: 100%; margin: 0 auto; }
         h2 { text-align: center; margin-bottom: 20px; font-size: 24px; color: #ffffff; font-weight: 600; }
-        .top-bar { position: fixed; top: 0; left: 0; right: 0; background-color: #1a1a1a; border-bottom: 2px solid #252525; padding: 10px 20px; padding-top: calc(10px + env(safe-area-inset-top)); display: flex; justify-content: space-between; align-items: center; z-index: 100; width: 100%; max-width: 100%; margin: 0 auto; box-shadow: 0 5px 15px rgba(0,0,0,0.6); }
+        .top-bar { position: fixed; top: 0; left: 0; right: 0; background-color: #1a1a1a; border-bottom: 2px solid #252525; padding: 10px 12px; padding-top: calc(10px + env(safe-area-inset-top)); display: flex; justify-content: space-between; align-items: center; z-index: 100; width: 100%; max-width: 100%; margin: 0 auto; box-shadow: 0 5px 15px rgba(0,0,0,0.6); }
         .shift-info { display: flex; flex-direction: column; }
-        .shift-title { font-size: 12px; color: #aaaaaa; text-transform: uppercase; letter-spacing: 1px; }
-        .shift-amount { font-size: 20px; font-weight: 700; color: #ffffff; }
-        .top-bar-buttons { display: flex; gap: 10px; }
-        .btn-history { background-color: #5c6bc0; color: #ffffff; border: none; padding: 12px 15px; font-size: 14px; font-weight: 600; border-radius: 6px; cursor: pointer; }
+        .shift-title { font-size: 10px; color: #aaaaaa; text-transform: uppercase; letter-spacing: 1px; }
+        .shift-amount { font-size: 16px; font-weight: 700; color: #ffffff; }
+        .top-bar-buttons { display: flex; gap: 5px; }
+        .btn-book { background-color: #00838f; color: #ffffff; border: none; padding: 9px 10px; font-size: 11px; font-weight: 600; border-radius: 6px; cursor: pointer; }
+        .btn-history { background-color: #5c6bc0; color: #ffffff; border: none; padding: 9px 10px; font-size: 11px; font-weight: 600; border-radius: 6px; cursor: pointer; }
         .btn-history.unsent { background-color: #e53935; }
-        .btn-salary { background-color: #ff9800; color: #ffffff; border: none; padding: 12px 15px; font-size: 14px; font-weight: 600; border-radius: 6px; cursor: pointer; display: none; }
-        .btn-shift { background-color: #e53935; color: #ffffff; border: none; padding: 12px 15px; font-size: 14px; font-weight: 600; border-radius: 6px; cursor: pointer; }
+        .btn-salary { background-color: #ff9800; color: #ffffff; border: none; padding: 9px 10px; font-size: 11px; font-weight: 600; border-radius: 6px; cursor: pointer; display: none; }
+        .btn-shift { background-color: #e53935; color: #ffffff; border: none; padding: 9px 10px; font-size: 11px; font-weight: 600; border-radius: 6px; cursor: pointer; }
         .btn-shift.closed { background-color: #2e7d32; }
         .step-indicator { display: flex; justify-content: space-between; margin-bottom: 25px; position: relative; max-width: 600px; margin-left: auto; margin-right: auto; }
         .step-indicator::before { content: ''; position: absolute; top: 12px; left: 10px; right: 10px; height: 2px; background-color: #2c2c2c; z-index: 1; }
@@ -59,18 +60,40 @@
         .btn-transfer { background-color: #1565c0; flex: 1; }
         .btn-split { background-color: #ff9800; flex: 0.6; font-size: 22px; padding: 10px; }
         .btn-pay:disabled { background-color: #555555 !important; color: #999999; cursor: not-allowed; }
-        .fixed-total-bar { position: fixed; bottom: 0; left: 0; right: 0; background-color: #1a1a1a; border-top: 2px solid #252525; padding: 15px 20px; padding-bottom: calc(15px + env(safe-area-inset-bottom)); display: flex; justify-content: space-between; align-items: center; z-index: 100; width: 100%; max-width: 100%; margin: 0 auto; box-shadow: 0 -5px 15px rgba(0,0,0,0.6); }
+        .fixed-total-bar { position: fixed; bottom: 0; left: 0; right: 0; background-color: #1a1a1a; border-top: 2px solid #252525; padding: 10px 20px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; justify-content: flex-start; z-index: 100; width: 100%; max-width: 100%; margin: 0 auto; box-shadow: 0 -5px 15px rgba(0,0,0,0.6); }
+        .queue-strip { width: 100%; font-size: 14px; color: #aaaaaa; padding: 2px 0 8px 0; border-bottom: 2px solid #252525; line-height: 1.7; }
+        .queue-strip .qn { color: #e0e0e0; font-weight: 600; }
+        .queue-strip .qx { color: #e53935; font-weight: 700; padding-left: 8px; cursor: pointer; }
+        .total-row { display: flex; justify-content: space-between; align-items: center; width: 100%; padding-top: 8px; }
         .total-info { display: flex; flex-direction: column; }
         .total-title { font-size: 12px; color: #aaaaaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
         .total-amount { font-size: 28px; font-weight: 700; color: #ffffff; }
         .btn-reset { background-color: #e53935; color: #ffffff; border: none; padding: 14px 28px; font-size: 16px; font-weight: 600; border-radius: 8px; cursor: pointer; }
-        /* ФИКС МОДАЛКИ: контент ограничен экраном, отчёт скроллится */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.85); z-index: 200; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
         .modal-content { background-color: #1e1e1e; border-radius: 12px; padding: 25px; max-width: 500px; width: 100%; text-align: center; max-height: calc(100vh - 40px); display: flex; flex-direction: column; }
         .report-textbox { width: 100%; flex: 1; min-height: 150px; height: 350px; background-color: #121212; color: #e0e0e0; border: 1px solid #333; border-radius: 8px; padding: 15px; font-size: 15px; margin-bottom: 15px; text-align: left; white-space: pre-wrap; overflow-y: auto; -webkit-overflow-scrolling: touch; }
         .salary-box { background-color: #252525; padding: 25px; border-radius: 8px; margin-bottom: 15px; font-size: 18px; color: #fff; white-space: pre-wrap; text-align: left; }
         .pay-input { width: 100%; height: 45px; background-color: #333333; border: 1px solid #444444; color: #ffffff; border-radius: 6px; text-align: center; font-size: 30px; font-weight: 600; margin-bottom: 15px; }
         .btn-share-full { width: 100%; margin-top: 10px; padding: 16px; font-size: 30px; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; color: #ffffff; background-color: #5c6bc0; }
+        #booking-view { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #121212; z-index: 150; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 10px 16px 40px; padding-top: calc(10px + env(safe-area-inset-top)); }
+        .bv-head { display: flex; align-items: center; gap: 10px; padding: 8px 0 4px 0; }
+        .bv-title { flex: 1; font-size: 20px; font-weight: 700; color: #ffffff; }
+        .bv-close { background: #333333; color: #e0e0e0; border: none; border-radius: 8px; padding: 10px 16px; font-size: 18px; font-weight: 700; cursor: pointer; }
+        .bv-daynav { display: flex; align-items: center; gap: 8px; padding: 6px 0 16px 0; }
+        .bv-arrow { width: 46px; height: 46px; flex-shrink: 0; background: #333333; color: #ffffff; border: none; border-radius: 8px; font-size: 28px; font-weight: 700; cursor: pointer; }
+        .bv-date { flex: 1; text-align: center; font-size: 19px; font-weight: 600; color: #ffffff; }
+        .bv-today { background: #00838f; color: #ffffff; border: none; border-radius: 8px; padding: 11px 12px; font-size: 14px; font-weight: 700; cursor: pointer; }
+        .slot-row { display: flex; align-items: stretch; background: #252525; border-radius: 8px; margin-bottom: 8px; overflow: hidden; min-height: 58px; }
+        .slot-time { width: 70px; flex-shrink: 0; background: #333333; color: #4caf50; font-weight: 700; font-size: 22px; display: flex; align-items: center; justify-content: center; }
+        .slot-mid { flex: 1; display: flex; align-items: center; padding: 10px 14px; font-size: 20px; color: #e0e0e0; }
+        .slot-free .slot-mid { color: #4caf50; font-weight: 600; }
+        .slot-done { opacity: 0.55; }
+        .slot-cont .slot-mid { color: #888888; font-size: 16px; }
+        .slot-x { width: 64px; flex-shrink: 0; background: #e53935; color: #ffffff; border: none; font-size: 20px; font-weight: 700; cursor: pointer; }
+        .type-toggle { display: flex; gap: 10px; margin-bottom: 6px; }
+        .type-btn { flex: 1; background: #333333; color: #aaaaaa; border: 1px solid #444444; border-radius: 8px; padding: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
+        .type-btn.active { background: #2e7d32; color: #ffffff; border-color: #2e7d32; }
+        .btn-ba { width: 100%; margin-top: 10px; padding: 16px; font-size: 22px; font-weight: 600; border-radius: 8px; border: none; color: #ffffff; cursor: pointer; }
         @media (min-width: 600px) { .grid-buttons { grid-template-columns: 1fr 1fr; } .item-mid { padding: 16px 18px 16px 20px; } .btn-select { font-size: 26px; } }
         @media (min-width: 900px) { .grid-buttons { grid-template-columns: 1fr 1fr 1fr; } .payment-buttons { max-width: 600px; margin-left: auto; margin-right: auto; } .nav-buttons { max-width: 600px; margin-left: auto; margin-right: auto; } .btn-select { font-size: 28px; } }
     </style>
@@ -82,9 +105,10 @@
         <div class="shift-amount" id="shift-revenue">0 руб</div>
     </div>
     <div class="top-bar-buttons">
+        <button class="btn-book" onclick="openBookingView()">Запись</button>
         <button class="btn-history" id="btn-history" onclick="showHistory()">Журнал</button>
         <button class="btn-salary" id="btn-salary" onclick="showCurrentSalary()">Зарплата</button>
-        <button class="btn-shift closed" id="btn-shift" onclick="showOpenShiftModal()">Открыть смену</button>
+        <button class="btn-shift closed" id="btn-shift" onclick="showOpenShiftModal()">Открыть</button>
     </div>
 </div>
 <h2>Шиномонтаж</h2>
@@ -170,9 +194,101 @@
     </div>
 </div>
 <div class="fixed-total-bar">
-    <div class="total-info"><div class="total-title">Итого к оплате</div><div class="total-amount" id="total-price">0 руб</div></div>
-    <button class="btn-reset" onclick="resetAll()">Сброс</button>
+    <div class="queue-strip" id="queue-strip">Сейчас: —<br>Далее: —</div>
+    <div class="total-row">
+        <div class="total-info"><div class="total-title">Итого к оплате</div><div class="total-amount" id="total-price">0 руб</div></div>
+        <button class="btn-reset" onclick="resetAll()">Сброс</button>
+    </div>
 </div>
+
+<div id="booking-view">
+    <div class="bv-head">
+        <div class="bv-title">ЗАПИСЬ</div>
+        <button class="bv-close" onclick="closeBookingView()">✕</button>
+    </div>
+    <div class="bv-daynav">
+        <button class="bv-arrow" onclick="bookShiftDay(-1)">‹</button>
+        <div class="bv-date" id="bv-date"></div>
+        <button class="bv-arrow" onclick="bookShiftDay(1)">›</button>
+        <button class="bv-today" id="bv-today-btn" onclick="bookGoToday()">Сегодня</button>
+    </div>
+    <div id="book-slots"></div>
+</div>
+
+<div class="modal-overlay" id="book-add-modal" style="z-index: 250;">
+    <div class="modal-content">
+        <h2 style="margin-bottom: 15px;">Новая запись</h2>
+        <div class="type-toggle">
+            <button id="bat-car" class="type-btn active" onclick="setAddType('car')">Легковая · 1 час</button>
+            <button id="bat-van" class="type-btn" onclick="setAddType('van')">Газель-класс · 2 часа</button>
+        </div>
+        <div id="ba-time" style="font-size: 16px; color: #aaaaaa; margin: 10px 0 12px 0;"></div>
+        <input type="text" id="ba-brand" class="pay-input" style="text-align: left; padding-left: 15px; font-size: 22px;" placeholder="Марка авто" list="brand-list">
+        <input type="number" id="ba-number" class="pay-input" placeholder="Госномер (только цифры)">
+        <div class="nav-buttons" style="margin-top: 0;">
+            <button class="btn-nav btn-back" onclick="closeAddModal()">Отмена</button>
+            <button class="btn-nav btn-next" onclick="confirmAddBook()">Записать</button>
+        </div>
+    </div>
+</div>
+<datalist id="brand-list">
+    <option value="Газель"></option><option value="Газель Некст"></option><option value="Соболь"></option>
+    <option value="ГАЗ (GAZ)"></option><option value="УАЗ (UAZ)"></option><option value="Патриот (Patriot)"></option>
+    <option value="Нива (Niva)"></option><option value="Лада (Lada)"></option><option value="ВАЗ (VAZ)"></option>
+    <option value="Гранта (Granta)"></option><option value="Веста (Vesta)"></option><option value="Калина (Kalina)"></option>
+    <option value="Рено (Renault)"></option><option value="Логан (Logan)"></option><option value="Дастер (Duster)"></option><option value="Каптур (Captur)"></option>
+    <option value="Хендай (Hyundai)"></option><option value="Солярис (Solaris)"></option>
+    <option value="Киа (Kia)"></option><option value="Рио (Rio)"></option>
+    <option value="Шкода (Skoda)"></option><option value="Октавия (Octavia)"></option><option value="Рапид (Rapid)"></option>
+    <option value="Тойота (Toyota)"></option><option value="Камри (Camry)"></option><option value="Королла (Corolla)"></option>
+    <option value="Ниссан (Nissan)"></option><option value="Альмера (Almera)"></option><option value="Кашкай (Qashqai)"></option><option value="Х-Трейл (X-Trail)"></option>
+    <option value="Мазда (Mazda)"></option><option value="CX-5 (CX-5)"></option><option value="Мазда 3 (Mazda 3)"></option>
+    <option value="Опель (Opel)"></option><option value="Астра (Astra)"></option><option value="Вектра (Vectra)"></option>
+    <option value="Пежо (Peugeot)"></option><option value="Партнер (Partner)"></option><option value="Боксер (Boxer)"></option>
+    <option value="Ситроен (Citroen)"></option><option value="Берлинго (Berlingo)"></option><option value="Джампер (Jumper)"></option>
+    <option value="Фольксваген (Volkswagen)"></option><option value="Транспортер (Transporter)"></option><option value="Пассат (Passat)"></option><option value="Гольф (Golf)"></option><option value="Поло (Polo)"></option>
+    <option value="Мерседес (Mercedes)"></option><option value="Спринтер (Sprinter)"></option><option value="Вито (Vito)"></option>
+    <option value="Форд (Ford)"></option><option value="Транзит (Transit)"></option><option value="Фокус (Focus)"></option><option value="Мондео (Mondeo)"></option><option value="Куга (Kuga)"></option>
+    <option value="Фиат (Fiat)"></option><option value="Дукато (Ducato)"></option><option value="Добло (Doblo)"></option>
+    <option value="Рено Мастер (Renault Master)"></option><option value="Пежо Боксер (Peugeot Boxer)"></option>
+    <option value="Чери (Chery)"></option><option value="Тигго (Tiggo)"></option>
+    <option value="Джили (Geely)"></option><option value="Кулрейн (Coolray)"></option><option value="Атлас (Atlas)"></option>
+    <option value="Хавал (Haval)"></option><option value="Джолион (Jolion)"></option><option value="Ф-7 (F7)"></option>
+    <option value="Чанган (Changan)"></option><option value="Омода (Omoda)"></option><option value="Эксид (Exeed)"></option>
+    <option value="Мицубиси (Mitsubishi)"></option><option value="Аутлендер (Outlander)"></option><option value="Паджеро (Pajero)"></option><option value="Лансер (Lancer)"></option>
+    <option value="СангЙонг (SsangYong)"></option><option value="Актион (Actyon)"></option><option value="Кайрон (Korando)"></option>
+    <option value="Сузуки (Suzuki)"></option><option value="Джимни (Jimny)"></option><option value="Витара (Vitara)"></option>
+    <option value="Субару (Subaru)"></option><option value="Форестер (Forester)"></option><option value="Импреза (Impreza)"></option>
+    <option value="Хонда (Honda)"></option><option value="ЦР-В (CR-V)"></option><option value="Сивик (Civic)"></option>
+    <option value="Лексус (Lexus)"></option><option value="НХ (NX)"></option><option value="РХ (RX)"></option>
+    <option value="Джип (Jeep)"></option>
+    <option value="Крайслер (Chrysler)"></option><option value="Плимут (Plymouth)"></option>
+    <option value="Шевроле (Chevrolet)"></option><option value="Лачетти (Lacetti)"></option><option value="Круз (Cruze)"></option><option value="Нива Шевроле"></option>
+    <option value="Дэу (Daewoo)"></option><option value="Нексия (Nexia)"></option><option value="Матиз (Matiz)"></option>
+    <option value="Хайма (Haima)"></option><option value="Лифан (Lifan)"></option><option value="Смайл (Smile)"></option>
+    <option value="Грейт Вол (Great Wall)"></option><option value="Динг (Dying)"></option>
+    <option value="Ягуар (Jaguar)"></option><option value="Вольво (Volvo)"></option><option value="Ленд Ровер (Land Rover)"></option>
+    <option value="Ауди (Audi)"></option><option value="А4 (A4)"></option><option value="Ку-7 (Q7)"></option>
+    <option value="БМВ (BMW)"></option><option value="Х5 (X5)"></option>
+    <option value="Смарт (Smart)"></option>
+    <option value="Тесла (Tesla)"></option>
+    <option value="БАУ (BAW)"></option><option value="Фотон (Foton)"></option><option value="Донфенг (Dongfeng)"></option>
+    <option value="Ивеко (Iveco)"></option><option value="Дейли (Daily)"></option>
+    <option value="Хино (Hino)"></option><option value="Исудзу (Isuzu)"></option><option value="Кантер (Canter)"></option>
+    <option value="Прицеп"></option><option value="Прицеп-дача"></option><option value="Мотоблок"></option><option value="Мотобуксировщик"></option>
+    <option value="Квадроцикл"></option><option value="Снегоход"></option><option value="Мотоцикл"></option>
+</datalist>
+
+<div class="modal-overlay" id="book-action-modal" style="z-index: 250;">
+    <div class="modal-content">
+        <h2 style="margin-bottom: 15px;" id="bam-title"></h2>
+        <button class="btn-ba" style="background: #2e7d32;" onclick="doBookStatus(actionBkId, 'done')">Сделано</button>
+        <button class="btn-ba" style="background: #ff9800;" onclick="doBookStatus(actionBkId, 'cancelled')">Отмена записи</button>
+        <button class="btn-ba" style="background: #e53935;" onclick="doBookStatus(actionBkId, 'noshow')">Нет клиента</button>
+        <button class="btn-ba" style="background: #333333;" onclick="closeActionModal()">Закрыть</button>
+    </div>
+</div>
+
 <div class="modal-overlay" id="custom-modal">
     <div class="modal-content">
         <div id="custom-type-select">
@@ -278,7 +394,6 @@
     };
     var addonPrices = { seal: 50, harness: 200, valve: 50, valve_sensor: 300, patch: 500 };
 
-    // Транспорт: планшет (Android-мост) или iOS (fetch). Фолбэк автоматический.
     var isAndroidBridge = (typeof Android !== 'undefined' && Android.syncPending);
     var iosFetchBusy = false;
 
@@ -302,12 +417,12 @@
 
     // ===== ОФЛАЙН-ОЧЕРЕДЬ СОБЫТИЙ =====
     var eventQueue = [];
-    var queueTimer = null;
+    var syncTimer = null;
 
     function loadEventQueue() {
         var saved = localStorage.getItem('shino_pending');
         if (saved) { try { eventQueue = JSON.parse(saved); } catch(e) { eventQueue = []; } }
-        var known = { open: 1, tx: 1, undo: 1, expense: 1, close: 1 };
+        var known = { open: 1, tx: 1, undo: 1, expense: 1, close: 1, book: 1, book_status: 1 };
         var clean = [];
         for (var i = 0; i < eventQueue.length; i++) {
             if (eventQueue[i] && known[eventQueue[i].type]) clean.push(eventQueue[i]);
@@ -326,25 +441,29 @@
         eventQueue.push(ev);
         saveEventQueue();
         updateJournalButton();
-        ensureQueueTimer();
+        ensureSyncTimer();
     }
     function resendPending() {
-        if (eventQueue.length === 0) {
-            if (queueTimer) { clearInterval(queueTimer); queueTimer = null; }
-            return;
-        }
+        if (eventQueue.length === 0) return;
         if (isAndroidBridge) {
             Android.syncPending(JSON.stringify(eventQueue));
         } else {
             iosResendPending();
         }
     }
-    function ensureQueueTimer() {
-        if (queueTimer) return;
-        queueTimer = setInterval(function() { resendPending(); }, 60000);
+    // Таймер 60 сек: очередь непуста — досылка; пуста — опрос сервера (правки админа).
+    // Только при открытом экране.
+    function ensureSyncTimer() {
+        if (syncTimer) return;
+        syncTimer = setInterval(function() {
+            if (document.visibilityState !== 'visible') return;
+            if (eventQueue.length > 0) { resendPending(); }
+            else { fetchJournalFromServer(); }
+            renderQueueStrip();
+        }, 60000);
     }
 
-    // ===== ТРАНСПОРТ iOS: события по одному, строго по порядку =====
+    // ===== ТРАНСПОРТ iOS =====
     function eventToParams(ev) {
         var p = {};
         p.pass = CLOUD_PASS;
@@ -361,6 +480,12 @@
         } else if (ev.type === 'close') {
             p.action = 'close'; p.master = ev.master;
             p.openDate = String(ev.openDate); p.closeDate = String(ev.closeDate);
+        } else if (ev.type === 'book') {
+            p.action = 'book'; p.id = ev.id; p.date = ev.date;
+            p.start = String(ev.start); p.hours = String(ev.hours);
+            p.type = ev.vtype; p.brand = ev.brand || ''; p.number = ev.number || '';
+        } else if (ev.type === 'book_status') {
+            p.action = 'book_status'; p.id = ev.id; p.status = ev.status;
         } else {
             return null;
         }
@@ -388,9 +513,7 @@
         fetch(SCRIPT_URL, { method: 'POST', body: usp })
             .then(function(r) { if (!r.ok) throw new Error('http'); return r.text(); })
             .then(function() { iosSendOne(idx + 1); })
-            .catch(function() {
-                iosFetchBusy = false; // сеть умерла — остальное на следующем такте
-            });
+            .catch(function() { iosFetchBusy = false; });
     }
 
     function liveMatchesShift(db, master, openDate) {
@@ -406,30 +529,17 @@
         return false;
     }
 
-    // ===== ОПТИМИЗАЦИЯ confirmEvents =====
-    // Раньше: для КАЖДОГО события очереди — линейный проход по всей базе
-    // (live + 30 смен журнала) через findTxAnywhere/expenseKnownInDb.
-    // На KitKat это давало фризы на секунды и "красную кнопку" надолго.
-    // Теперь: ОДИН проход по базе строит словари ID, дальше каждая проверка
-    // события — обращение к свойству объекта за O(1).
-    // Словари-объекты вместо Set: чистый ES5, работает на WebView Android 4.4.
     function confirmEvents(db) {
         if (eventQueue.length === 0) return;
-
-        // Пред-индекс: все ID транзакций и расходов сервера (live + журнал)
-        var txIds = {};   // id транзакции -> true
-        var expIds = {};  // id расхода -> true
+        var txIds = {};
+        var expIds = {};
         var i, k;
         if (db.live) {
             if (db.live.transactions) {
-                for (i = 0; i < db.live.transactions.length; i++) {
-                    txIds[String(db.live.transactions[i].id)] = true;
-                }
+                for (i = 0; i < db.live.transactions.length; i++) { txIds[String(db.live.transactions[i].id)] = true; }
             }
             if (db.live.expenseIds) {
-                for (i = 0; i < db.live.expenseIds.length; i++) {
-                    expIds[String(db.live.expenseIds[i])] = true;
-                }
+                for (i = 0; i < db.live.expenseIds.length; i++) { expIds[String(db.live.expenseIds[i])] = true; }
             }
         }
         if (db.journal) {
@@ -440,7 +550,6 @@
                 if (ids) { for (k = 0; k < ids.length; k++) { expIds[String(ids[k])] = true; } }
             }
         }
-
         var remaining = [];
         for (var j = 0; j < eventQueue.length; j++) {
             var ev = eventQueue[j];
@@ -456,6 +565,11 @@
                 confirmed = expIds[String(ev.id)] === true;
             } else if (ev.type === 'close') {
                 confirmed = !liveMatchesShift(db, ev.master, ev.openDate);
+            } else if (ev.type === 'book') {
+                confirmed = !!findBk(db.schedule || {}, ev.id);
+            } else if (ev.type === 'book_status') {
+                var sb = findBk(db.schedule || {}, ev.id);
+                confirmed = !sb || sb.status === ev.status;
             }
             if (!confirmed) remaining.push(ev);
         }
@@ -465,7 +579,233 @@
             updateJournalButton();
         }
     }
-    // ===== КОНЕЦ ОФЛАЙН-ОЧЕРЕДИ =====
+
+    // ===== ЗАПИСЬ КЛИЕНТОВ =====
+    var localSchedule = {};
+    var bookCtx = { date: null };
+    var addCtx = { start: 11, vtype: 'car' };
+    var actionBkId = null;
+
+    var WD = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+    var MG = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+
+    function pad2(n) { return (n < 10 ? '0' : '') + n; }
+    function dateToYmd(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+    function ymdShift(days) { return dateToYmd(new Date(Date.now() + days * 86400000)); }
+    function ymdLabel(ymd) {
+        var p = ymd.split('-');
+        var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+        return WD[d.getDay()] + ', ' + parseInt(p[2], 10) + ' ' + MG[d.getMonth()];
+    }
+    function esc(s) {
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+               .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function loadScheduleLocal() {
+        var s = localStorage.getItem('shino_schedule');
+        if (s) { try { localSchedule = JSON.parse(s); } catch(e) { localSchedule = {}; } }
+    }
+    function saveScheduleLocal() { localStorage.setItem('shino_schedule', JSON.stringify(localSchedule)); }
+
+    function findBk(sched, id) {
+        for (var d in sched) {
+            var l = sched[d];
+            if (!l) continue;
+            for (var i = 0; i < l.length; i++) {
+                if (String(l[i].id) === String(id)) return l[i];
+            }
+        }
+        return null;
+    }
+
+    function mergeSchedule(db) {
+        var serverSched = db.schedule || {};
+        var view = {};
+        for (var d in serverSched) {
+            if (serverSched[d]) view[d] = JSON.parse(JSON.stringify(serverSched[d]));
+        }
+        for (var i = 0; i < eventQueue.length; i++) {
+            var ev = eventQueue[i];
+            if (ev.type === 'book') {
+                if (!findBk(view, ev.id)) {
+                    if (!view[ev.date]) view[ev.date] = [];
+                    view[ev.date].push({ id: ev.id, date: ev.date, start: ev.start, hours: ev.hours, type: ev.vtype, brand: ev.brand, number: ev.number, status: 'booked' });
+                }
+            } else if (ev.type === 'book_status') {
+                var b = findBk(view, ev.id);
+                if (b) b.status = ev.status;
+            }
+        }
+        localSchedule = view;
+        saveScheduleLocal();
+        renderQueueStrip();
+        if (document.getElementById('booking-view').style.display === 'block') renderBookDay();
+    }
+
+    function openBookingView() {
+        bookCtx.date = dateToYmd(new Date());
+        document.getElementById('booking-view').style.display = 'block';
+        renderBookDay();
+    }
+    function closeBookingView() { document.getElementById('booking-view').style.display = 'none'; }
+    function bookGoToday() { bookCtx.date = dateToYmd(new Date()); renderBookDay(); }
+
+    function bookShiftDay(delta) {
+        var p = bookCtx.date.split('-');
+        var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+        d.setDate(d.getDate() + delta);
+        var ymd = dateToYmd(d);
+        var min = ymdShift(-3), max = ymdShift(30);
+        if (ymd < min) ymd = min;
+        if (ymd > max) ymd = max;
+        bookCtx.date = ymd;
+        renderBookDay();
+    }
+
+    function renderBookDay() {
+        document.getElementById('bv-date').innerText = ymdLabel(bookCtx.date);
+        document.getElementById('bv-today-btn').style.display =
+            (bookCtx.date === dateToYmd(new Date())) ? 'none' : '';
+
+        var list = localSchedule[bookCtx.date] || [];
+        var occ = {};
+        for (var i = 0; i < list.length; i++) {
+            var b = list[i];
+            if (b.status === 'booked' || b.status === 'done') {
+                for (var h = b.start; h < b.start + b.hours; h++) occ[h] = b;
+            }
+        }
+        var c = document.getElementById('book-slots');
+        c.innerHTML = '';
+        for (var hh = 8; hh <= 17; hh++) {
+            var b = occ[hh];
+            var row = document.createElement('div');
+            if (!b) {
+                row.className = 'slot-row slot-free';
+                row.innerHTML = '<div class="slot-time">' + hh + ':00</div><div class="slot-mid">+ записать</div>';
+                row.onclick = (function(x) { return function() { openAddForm(x); }; })(hh);
+            } else if (b.start === hh) {
+                var txt = ((b.brand || '—') + ' ' + (b.number || '—')).trim();
+                if (b.status === 'done') {
+                    row.className = 'slot-row slot-done';
+                    row.innerHTML = '<div class="slot-time">' + hh + ':00</div><div class="slot-mid">✓ сделано: ' + esc(txt) + '</div>';
+                } else {
+                    row.className = 'slot-row';
+                    row.innerHTML = '<div class="slot-time">' + hh + ':00</div><div class="slot-mid">' + esc(txt) + '</div><button class="slot-x">✕</button>';
+                    row.querySelector('.slot-x').onclick = (function(bid) { return function() { openActionModal(bid); }; })(b.id);
+                }
+            } else {
+                row.className = 'slot-row slot-cont';
+                row.innerHTML = '<div class="slot-time">' + hh + ':00</div><div class="slot-mid">⤷ 2-й час (' + esc(b.brand || '—') + ')</div>';
+            }
+            c.appendChild(row);
+        }
+    }
+
+    function openAddForm(h) {
+        addCtx.start = h;
+        addCtx.vtype = 'car';
+        document.getElementById('ba-brand').value = '';
+        document.getElementById('ba-number').value = '';
+        setAddType('car');
+        document.getElementById('book-add-modal').style.display = 'flex';
+    }
+    function closeAddModal() { document.getElementById('book-add-modal').style.display = 'none'; }
+
+    function setAddType(t) {
+        addCtx.vtype = t;
+        document.getElementById('bat-car').className = 'type-btn' + (t === 'car' ? ' active' : '');
+        document.getElementById('bat-van').className = 'type-btn' + (t === 'van' ? ' active' : '');
+        var h = addCtx.start, dur = (t === 'van') ? 2 : 1;
+        document.getElementById('ba-time').innerText = 'Время: ' + h + ':00 – ' + (h + dur) + ':00' + (t === 'van' ? ' (два часа подряд)' : '');
+    }
+
+    function confirmAddBook() {
+        var h = addCtx.start, van = (addCtx.vtype === 'van');
+        var hours = van ? 2 : 1;
+        if (van && h > 16) {
+            alert('Газели не помещаются: нужен 2-й час, а ' + h + ':00 — последний слот.\nВыберите время до 16:00.');
+            return;
+        }
+        var list = localSchedule[bookCtx.date] || [];
+        for (var i = 0; i < list.length; i++) {
+            var b = list[i];
+            if (b.status === 'booked' || b.status === 'done') {
+                if (h < b.start + b.hours && b.start < h + hours) { alert('Этот час уже занят.'); return; }
+            }
+        }
+        var brand = document.getElementById('ba-brand').value.trim();
+        var number = document.getElementById('ba-number').value.trim();
+        if (!brand && !number) { alert('Введите марку или номер (можно только одно).'); return; }
+        txCounter++;
+        var id = 'bk' + new Date().getTime() + '-' + txCounter;
+        if (!localSchedule[bookCtx.date]) localSchedule[bookCtx.date] = [];
+        localSchedule[bookCtx.date].push({
+            id: id, date: bookCtx.date, start: h, hours: hours, type: addCtx.vtype,
+            brand: brand, number: number, status: 'booked', time: new Date().getTime()
+        });
+        saveScheduleLocal();
+        pushEvent({ type: 'book', id: id, date: bookCtx.date, start: h, hours: hours, vtype: addCtx.vtype, brand: brand, number: number });
+        closeAddModal();
+        renderBookDay();
+        renderQueueStrip();
+        resendPending();
+    }
+
+    function openActionModal(id) {
+        var b = findBk(localSchedule, id);
+        if (!b) return;
+        actionBkId = id;
+        document.getElementById('bam-title').innerText =
+            ((b.brand || '—') + ' ' + (b.number || '—')).trim() + ' · ' + b.start + ':00–' + (b.start + b.hours) + ':00';
+        document.getElementById('book-action-modal').style.display = 'flex';
+    }
+    function closeActionModal() {
+        document.getElementById('book-action-modal').style.display = 'none';
+        actionBkId = null;
+    }
+    function doBookStatus(id, status) {
+        var b = findBk(localSchedule, id);
+        if (!b) { closeActionModal(); return; }
+        b.status = status;
+        saveScheduleLocal();
+        pushEvent({ type: 'book_status', id: id, status: status });
+        closeActionModal();
+        if (document.getElementById('booking-view').style.display === 'block') renderBookDay();
+        renderQueueStrip();
+        resendPending();
+    }
+
+    function renderQueueStrip() {
+        var today = dateToYmd(new Date());
+        var list = localSchedule[today] || [];
+        var now = new Date();
+        var nowH = now.getHours() + now.getMinutes() / 60;
+        var cur = null, next = null;
+        var i, b;
+        for (i = 0; i < list.length; i++) {
+            b = list[i];
+            if (b.status !== 'booked' && b.status !== 'done') continue;
+            if (b.start <= nowH && nowH < b.start + b.hours) { if (!cur) cur = b; }
+        }
+        for (i = 0; i < list.length; i++) {
+            b = list[i];
+            if (b.status !== 'booked') continue;
+            if (cur && b.id === cur.id) continue;
+            if (b.start >= nowH) { if (!next || b.start < next.start) next = b; }
+        }
+        function line(label, bk) {
+            if (bk) {
+                var name = ((bk.brand || '—') + ' ' + (bk.number || '—')).trim();
+                var mark = (bk.status === 'done') ? '✓ ' : '';
+                return label + ': <span class="qn">' + esc(mark + name) + '</span><span class="qx" onclick="openActionModal(\'' + bk.id + '\')">[x]</span>';
+            }
+            return label + ': <span class="qn">—</span>';
+        }
+        document.getElementById('queue-strip').innerHTML = line('Сейчас', cur) + '<br>' + line('Далее', next);
+    }
+    // ===== КОНЕЦ ЗАПИСИ =====
 
     function formatDateTime(d) {
         var day = d.getDate(); var month = d.getMonth() + 1; var year = d.getFullYear();
@@ -535,7 +875,7 @@
         } else {
             statusEl.innerText = 'СМЕНА ЗАКРЫТА';
             amountEl.innerText = '0 руб';
-            btnEl.innerText = 'Открыть смену';
+            btnEl.innerText = 'Открыть';
             btnEl.classList.add('closed');
             btnEl.onclick = showOpenShiftModal;
             btnSalary.style.display = 'none';
@@ -646,7 +986,6 @@
         statsArr.push({ time: new Date().getTime(), bossShare: (shift.totalCash + shift.totalTransfer) - roundedMasterSalary - shift.expenses, totalTransfer: shift.totalTransfer });
         localStorage.setItem('shino_stats', JSON.stringify(statsArr));
 
-        // Планшет: файл в Documents/Шинка. iOS: кнопка "Скачать журнал" в журнале.
         if (isAndroidBridge && typeof Android.saveJournal !== 'undefined') {
             var fileContent = "=== ЖУРНАЛ СМЕН ШИНОМОНТАЖА ===\n\n";
             for (var i = 0; i < historyArr.length; i++) {
@@ -669,7 +1008,6 @@
         resendPending();
     }
 
-    // iOS: сохранение текста через "Файлы"
     function downloadJournal() {
         var text = document.getElementById('report-text').value;
         if (!text) return;
@@ -710,9 +1048,7 @@
     function confirmUndo() {
         closeUndoConfirmModal();
         var lastTrans = shift.transactions.pop();
-
         pushEvent({ type: 'undo', id: lastTrans.id });
-
         recalcLocalTotals();
         saveShift();
         updateShiftUI();
@@ -732,10 +1068,8 @@
         if (amount <= 0) { alert('Введите корректную сумму!'); return; }
         shift.expenses += amount;
         saveShift();
-
         txCounter++;
         pushEvent({ type: 'expense', id: 'exp_' + new Date().getTime() + '_' + txCounter, amount: amount, master: shift.masterName, openDate: shift.openDate });
-
         alert('Расход ' + amount + ' руб добавлен.');
         closeExpensesModal();
         resendPending();
@@ -755,9 +1089,8 @@
     window.handleJournalFetch = function(jsonStr) {
         try {
             var db = JSON.parse(jsonStr);
-
             confirmEvents(db);
-
+            mergeSchedule(db);
             if (eventQueue.length === 0 && db.live && db.live.isOpen && shift.isOpen
                 && shift.masterName === db.live.masterName
                 && Number(shift.openDate) === Number(db.live.openDate)) {
@@ -767,7 +1100,6 @@
                 saveShift();
                 updateShiftUI();
             }
-
             if (db.journal) {
                 var historyArr = [];
                 var statsArr = [];
@@ -794,7 +1126,6 @@
         recalcLocalTotals();
         saveShift();
         updateShiftUI();
-
         pushEvent({
             type: 'tx', id: tId, payType: type, amount: amount,
             masterShare: masterShare, bossShare: bossShare, time: transaction.time
@@ -1104,16 +1435,23 @@
         }
     }, false);
 
-    // iOS: возврат из сворачивания — сразу дослать очередь
+    // Возврат из сворачивания: дослать/опросить + обновить ленту
     document.addEventListener('visibilitychange', function() {
-        if (document.visibilityState === 'visible') { resendPending(); }
+        if (document.visibilityState === 'visible') {
+            if (eventQueue.length > 0) { resendPending(); }
+            else { fetchJournalFromServer(); }
+            renderQueueStrip();
+        }
     });
 
     // ===== Инициализация =====
     loadShift();
     loadEventQueue();
+    loadScheduleLocal();
     updateJournalButton();
-    if (eventQueue.length > 0) { ensureQueueTimer(); resendPending(); }
+    renderQueueStrip();
+    ensureSyncTimer();
+    if (eventQueue.length > 0) { resendPending(); }
 </script>
 </body>
 </html>
