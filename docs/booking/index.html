@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Запись Шиномонтаж</title>
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Запись">
+    <link rel="apple-touch-icon" href="icon-180.png">
+
+    <meta name="theme-color" content="#121212">
+    <link rel="manifest" href="manifest.json">
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+        html, body { background-color: #121212; color: #e0e0e0; }
+        body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+        .wrap { max-width: 640px; margin: 0 auto; padding: 12px 16px 40px; }
+
+        .app-header { display: flex; align-items: center; gap: 8px; padding: 6px 0 2px 0; }
+        .hdr-title { flex: 1; text-align: center; font-size: 20px; font-weight: 700; color: #ffffff; }
+        .btn-mini { background-color: #5c6bc0; color: #ffffff; border: none; padding: 10px 14px; font-size: 15px; font-weight: 600; border-radius: 8px; cursor: pointer; flex-shrink: 0; }
+        .btn-mini-red { background-color: #e53935; }
+        .btn-today { background-color: #00838f; }
+
+        .daynav { display: flex; align-items: center; gap: 8px; padding: 8px 0 14px 0; }
+        .daynav .arr { width: 52px; flex-shrink: 0; background: #333333; color: #ffffff; border: none; border-radius: 8px; padding: 10px 0; font-size: 24px; font-weight: 700; cursor: pointer; }
+        .daynav .date { flex: 1; text-align: center; color: #ffffff; font-weight: 600; font-size: 17px; }
+
+        .status-line { font-size: 12px; color: #888888; margin-bottom: 12px; min-height: 14px; }
+        .status-line.warn { color: #ff9800; }
+        .status-line.err { color: #e53935; }
+
+        .slot-row { display: flex; align-items: stretch; background: #252525; border-radius: 10px; margin-bottom: 8px; overflow: hidden; min-height: 58px; }
+        .slot-time { width: 70px; flex-shrink: 0; background: #333333; color: #4CAF50; font-weight: 700; font-size: 21px; display: flex; align-items: center; justify-content: center; }
+        .slot-mid { flex: 1; display: flex; align-items: center; padding: 10px 14px; font-size: 19px; color: #e0e0e0; }
+        .slot-free .slot-mid { color: #4CAF50; font-weight: 600; }
+        .slot-done { opacity: 0.55; }
+        .slot-cont .slot-mid { color: #888888; font-size: 15px; }
+
+        .btn { border: none; border-radius: 8px; font-weight: 600; font-size: 16px; padding: 14px; cursor: pointer; }
+        .btn-green { background-color: #2e7d32; color: #ffffff; }
+        .btn-grey { background-color: #333333; color: #e0e0e0; }
+        .btn-full { width: 100%; margin: 6px 0; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.85); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+        .modal-overlay.open { display: flex; }
+        .modal { background-color: #1e1e1e; border-radius: 12px; padding: 20px; width: 100%; max-width: 400px; }
+        .modal-title { font-size: 18px; font-weight: 700; color: #ffffff; margin-bottom: 14px; text-align: center; }
+        .pay-input { width: 100%; height: 46px; background-color: #333333; border: 1px solid #444444; color: #ffffff; border-radius: 8px; text-align: center; font-size: 22px; margin-bottom: 12px; }
+        .type-toggle { display: flex; gap: 10px; margin-bottom: 6px; }
+        .type-btn { flex: 1; background-color: #333333; color: #aaaaaa; border: 1px solid #444444; border-radius: 8px; padding: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
+        .type-btn.active { background-color: #2e7d32; color: #ffffff; border-color: #2e7d32; }
+        .modal-btns { display: flex; gap: 10px; margin-top: 10px; }
+        .modal-btns .btn { flex: 1; }
+
+        .toast { position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%) translateY(20px); background-color: #333333; color: #ffffff; padding: 12px 20px; border-radius: 10px; font-size: 15px; opacity: 0; pointer-events: none; transition: opacity 0.25s, transform 0.25s; z-index: 200; max-width: 85%; text-align: center; }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        .lock-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .lock-card { width: 100%; max-width: 360px; background-color: #1e1e1e; border-radius: 12px; padding: 20px; }
+        .lock-title { font-size: 20px; font-weight: 700; color: #ffffff; text-align: center; margin-bottom: 16px; }
+        .lock-err { color: #e53935; font-size: 14px; text-align: center; margin-top: 10px; min-height: 16px; }
+
+        .install-hint { background-color: #1e1e1e; border-radius: 10px; padding: 12px 16px; margin: 0 0 14px 0; font-size: 14px; color: #aaaaaa; line-height: 1.5; }
+    </style>
+</head>
+<body>
+
+    <!-- Экран блокировки -->
+    <div id="lock-screen" class="lock-wrap">
+        <div class="lock-card">
+            <div class="lock-title">Запись Шиномонтаж</div>
+            <input type="password" id="pass-input" class="pay-input" placeholder="Пароль" autocomplete="off">
+            <button class="btn btn-green btn-full" onclick="tryUnlock()">Войти</button>
+            <div id="lock-error" class="lock-err"></div>
+        </div>
+    </div>
+
+    <!-- Приложение -->
+    <div id="app" style="display:none">
+        <div class="wrap">
+            <div class="app-header">
+                <button class="btn-mini btn-today" id="btn-today" style="display:none;" onclick="goToday()">Сегодня</button>
+                <div class="hdr-title">ЗАПИСЬ</div>
+                <button class="btn-mini" onclick="refreshNow()">⟳</button>
+                <button class="btn-mini btn-mini-red" onclick="lockApp()">🔒</button>
+            </div>
+            <div class="daynav">
+                <button class="arr" onclick="shiftDay(-1)">‹</button>
+                <div class="date" id="bv-date"></div>
+                <button class="arr" onclick="shiftDay(1)">›</button>
+            </div>
+            <div class="status-line" id="status-line"></div>
+            <div id="install-hint" class="install-hint" style="display:none;">
+                Совет: в Safari нажмите «Поделиться» → «На экран „Домой“» — и запись станет приложением с иконкой.
+            </div>
+            <div id="book-slots"></div>
+        </div>
+    </div>
+
+    <!-- Модалка: форма записи (новая / изменение) -->
+    <div class="modal-overlay" id="form-modal">
+        <div class="modal">
+            <div class="modal-title" id="fm-title">Новая запись</div>
+            <div class="type-toggle">
+                <button id="ft-car" class="type-btn active" onclick="setFormType('car')">Легковая · 1 час</button>
+                <button id="ft-van" class="type-btn" onclick="setFormType('van')">Газель-класс · 2 часа</button>
+            </div>
+            <input type="number" id="fm-start" class="pay-input" placeholder="Час начала (8–17)">
+            <input type="text" id="fm-brand" class="pay-input" style="text-align:left;padding-left:14px;font-size:20px;" placeholder="Марка авто" list="brand-list">
+            <input type="number" id="fm-number" class="pay-input" placeholder="Госномер (только цифры)">
+            <div class="modal-btns">
+                <button class="btn btn-grey" onclick="closeFormModal()">Отмена</button>
+                <button class="btn btn-green" onclick="saveForm()">Сохранить</button>
+            </div>
+        </div>
+    </div>
+    <datalist id="brand-list">
+        <option value="Газель"></option><option value="Газель Некст"></option><option value="Соболь"></option>
+        <option value="ГАЗ (GAZ)"></option><option value="УАЗ (UAZ)"></option><option value="Патриот (Patriot)"></option>
+        <option value="Нива (Niva)"></option><option value="Лада (Lada)"></option><option value="ВАЗ (VAZ)"></option>
+        <option value="Гранта (Granta)"></option><option value="Веста (Vesta)"></option><option value="Калина (Kalina)"></option>
+        <option value="Рено (Renault)"></option><option value="Логан (Logan)"></option><option value="Дастер (Duster)"></option><option value="Каптур (Captur)"></option>
+        <option value="Хендай (Hyundai)"></option><option value="Солярис (Solaris)"></option>
+        <option value="Киа (Kia)"></option><option value="Рио (Rio)"></option>
+        <option value="Шкода (Skoda)"></option><option value="Октавия (Octavia)"></option><option value="Рапид (Rapid)"></option>
+        <option value="Тойота (Toyota)"></option><option value="Камри (Camry)"></option><option value="Королла (Corolla)"></option>
+        <option value="Ниссан (Nissan)"></option><option value="Альмера (Almera)"></option><option value="Кашкай (Qashqai)"></option><option value="Х-Трейл (X-Trail)"></option>
+        <option value="Мазда (Mazda)"></option><option value="CX-5 (CX-5)"></option><option value="Мазда 3 (Mazda 3)"></option>
+        <option value="Опель (Opel)"></option><option value="Астра (Astra)"></option><option value="Вектра (Vectra)"></option>
+        <option value="Пежо (Peugeot)"></option><option value="Партнер (Partner)"></option><option value="Боксер (Boxer)"></option>
+        <option value="Ситроен (Citroen)"></option><option value="Берлинго (Berlingo)"></option><option value="Джампер (Jumper)"></option>
+        <option value="Фольксваген (Volkswagen)"></option><option value="Транспортер (Transporter)"></option><option value="Пассат (Passat)"></option><option value="Гольф (Golf)"></option><option value="Поло (Polo)"></option>
+        <option value="Мерседес (Mercedes)"></option><option value="Спринтер (Sprinter)"></option><option value="Вито (Vito)"></option>
+        <option value="Форд (Ford)"></option><option value="Транзит (Transit)"></option><option value="Фокус (Focus)"></option><option value="Мондео (Mondeo)"></option><option value="Куга (Kuga)"></option>
+        <option value="Фиат (Fiat)"></option><option value="Дукато (Ducato)"></option><option value="Добло (Doblo)"></option>
+        <option value="Рено Мастер (Renault Master)"></option><option value="Пежо Боксер (Peugeot Boxer)"></option>
+        <option value="Чери (Chery)"></option><option value="Тигго (Tiggo)"></option>
+        <option value="Джили (Geely)"></option><option value="Кулрейн (Coolray)"></option><option value="Атлас (Atlas)"></option>
+        <option value="Хавал (Haval)"></option><option value="Джолион (Jolion)"></option><option value="Ф-7 (F7)"></option>
+        <option value="Чанган (Changan)"></option><option value="Омода (Omoda)"></option><option value="Эксид (Exeed)"></option>
+        <option value="Мицубиси (Mitsubishi)"></option><option value="Аутлендер (Outlander)"></option><option value="Паджеро (Pajero)"></option><option value="Лансер (Lancer)"></option>
+        <option value="СангЙонг (SsangYong)"></option><option value="Актион (Actyon)"></option><option value="Кайрон (Korando)"></option>
+        <option value="Сузуки (Suzuki)"></option><option value="Джимни (Jimny)"></option><option value="Витара (Vitara)"></option>
+        <option value="Субару (Subaru)"></option><option value="Форестер (Forester)"></option><option value="Импреза (Impreza)"></option>
+        <option value="Хонда (Honda)"></option><option value="ЦР-В (CR-V)"></option><option value="Сивик (Civic)"></option>
+        <option value="Лексус (Lexus)"></option><option value="НХ (NX)"></option><option value="РХ (RX)"></option>
+        <option value="Джип (Jeep)"></option>
+        <option value="Крайслер (Chrysler)"></option><option value="Плимут (Plymouth)"></option>
+        <option value="Шевроле (Chevrolet)"></option><option value="Лачетти (Lacetti)"></option><option value="Круз (Cruze)"></option><option value="Нива Шевроле"></option>
+        <option value="Дэу (Daewoo)"></option><option value="Нексия (Nexia)"></option><option value="Матиз (Matiz)"></option>
+        <option value="Хайма (Haima)"></option><option value="Лифан (Lifan)"></option><option value="Смайл (Smile)"></option>
+        <option value="Грейт Вол (Great Wall)"></option><option value="Динг (Dying)"></option>
+        <option value="Ягуар (Jaguar)"></option><option value="Вольво (Volvo)"></option><option value="Ленд Ровер (Land Rover)"></option>
+        <option value="Ауди (Audi)"></option><option value="А4 (A4)"></option><option value="Ку-7 (Q7)"></option>
+        <option value="БМВ (BMW)"></option><option value="Х5 (X5)"></option>
+        <option value="Смарт (Smart)"></option>
+        <option value="Тесла (Tesla)"></option>
+        <option value="БАУ (BAW)"></option><option value="Фотон (Foton)"></option><option value="Донфенг (Dongfeng)"></option>
+        <option value="Ивеко (Iveco)"></option><option value="Дейли (Daily)"></option>
+        <option value="Хино (Hino)"></option><option value="Исудзу (Isuzu)"></option><option value="Кантер (Canter)"></option>
+        <option value="Прицеп"></option><option value="Прицеп-дача"></option><option value="Мотоблок"></option><option value="Мотобуксировщик"></option>
+        <option value="Квадроцикл"></option><option value="Снегоход"></option><option value="Мотоцикл"></option>
+    </datalist>
+
+    <!-- Модалка: действия с записью -->
+    <div class="modal-overlay" id="action-modal">
+        <div class="modal">
+            <div class="modal-title" id="am-title"></div>
+            <button class="btn btn-full" style="background:#ff9800;color:#000;" onclick="editFromAction()">✏ Изменить (форма)</button>
+            <button class="btn btn-full" style="background:#2e7d32;" onclick="doStatus('done')">✓ Сделано</button>
+            <button class="btn btn-full" style="background:#ff9800;color:#000;" onclick="doStatus('cancelled')">✕ Отмена записи</button>
+            <button class="btn btn-full" style="background:#e53935;" onclick="doStatus('noshow')">! Нет клиента</button>
+            <button class="btn btn-full" style="background:#333333;margin-top:10px;" onclick="closeActionModal()">Закрыть</button>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+<script>
+    var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxiqxOD5Fuj8FYLp3OEg5HKTbr1YS2gT7Dxp0BywWnoROYW85rkjD3clJc7dvfaVpJqiw/exec';
+    var PASS_KEY = 'shino_booking_pass';
+    var PENDING_KEY = 'shino_booking_pending';
+    var AUTO_REFRESH_MS = 30000;
+
+    var pass = '';
+    var lastDb = null;
+    var pendingOps = [];
+    var flushing = false;
+    var fetchInFlight = false;
+    var lastUpdated = null;
+    var toastTimer = null;
+
+    var bookYmd = null;
+    var formCtx = { editId: null, type: 'car' };
+    var actionCtx = { bk: null };
+
+    var WD = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+    var MG = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+
+    function $(id) { return document.getElementById(id); }
+    function pad2(n) { return (n < 10 ? '0' : '') + n; }
+    function todayYmd() { var d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+    function ymdLabel(ymd) {
+        var p = ymd.split('-');
+        var d = new Date(+p[0], +p[1] - 1, +p[2]);
+        return WD[d.getDay()] + ', ' + (+p[2]) + ' ' + MG[d.getMonth()];
+    }
+    function ymdLimit(delta) {
+        var d = new Date(Date.now() + delta * 86400000);
+        return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+    }
+    function esc(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    function toast(msg) {
+        var t = $('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTimer = setTimeout(function() { t.classList.remove('show'); }, 2600);
+    }
+
+    function setStatus(text, cls) {
+        var el = $('status-line');
+        el.textContent = text;
+        el.className = 'status-line' + (cls ? ' ' + cls : '');
+    }
+
+    function updateStatusLine() {
+        if (pendingOps.length > 0) {
+            setStatus('⟳ Не отправлено: ' + pendingOps.length + (lastUpdated ? ' · обновлено ' + lastUpdated.toLocaleTimeString('ru-RU') : ''), 'warn');
+        } else if (lastUpdated) {
+            setStatus('Обновлено: ' + lastUpdated.toLocaleTimeString('ru-RU'));
+        } else {
+            setStatus('');
+        }
+    }
+
+    // ---------- Блокировка ----------
+
+    function showLock() {
+        $('lock-screen').style.display = 'flex';
+        $('app').style.display = 'none';
+        $('pass-input').value = '';
+        $('lock-error').textContent = '';
+    }
+
+    function enterApp() {
+        $('lock-screen').style.display = 'none';
+        $('app').style.display = 'block';
+        if (bookYmd == null) bookYmd = todayYmd();
+        var isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+        $('install-hint').style.display = isStandalone ? 'none' : 'block';
+        renderBookDay();
+        refreshNow();
+        flushPending();
+    }
+
+    function lockApp() {
+        pass = '';
+        localStorage.removeItem(PASS_KEY);
+        showLock();
+    }
+
+    function tryUnlock() {
+        var p = $('pass-input').value;
+        if (!p) return;
+        $('lock-error').textContent = '';
+        var usp = new URLSearchParams();
+        usp.set('pass', p);
+        usp.set('action', 'ping');
+        fetch(SCRIPT_URL, { method: 'POST', body: usp })
+            .then(function(r) { return r.text(); })
+            .then(function(text) {
+                text = (text || '').trim();
+                if (text.indexOf('авториза') !== -1) {
+                    $('lock-error').textContent = 'Неверный пароль';
+                } else {
+                    pass = p;
+                    localStorage.setItem(PASS_KEY, p);
+                    enterApp();
+                }
+            })
+            .catch(function() { $('lock-error').textContent = 'Нет связи с сервером'; });
+    }
+
+    $('pass-input').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') tryUnlock();
+    });
+
+    // ---------- Очередь офлайн-событий ----------
+
+    function loadPending() {
+        var s = localStorage.getItem(PENDING_KEY);
+        if (s) { try { pendingOps = JSON.parse(s); } catch(e) { pendingOps = []; } }
+    }
+    function savePending() { localStorage.setItem(PENDING_KEY, JSON.stringify(pendingOps)); }
+
+    function queueOp(op) {
+        pendingOps.push(op);
+        savePending();
+        updateStatusLine();
+        flushPending();
+    }
+
+    // Досылка строго по одному, по порядку
+    function flushPending() {
+        if (flushing || pendingOps.length === 0) return;
+        flushing = true;
+        sendOne(0);
+    }
+
+    function sendOne(idx) {
+        if (idx >= pendingOps.length) {
+            flushing = false;
+            refreshNow();
+            return;
+        }
+        var op = pendingOps[idx];
+        var usp = new URLSearchParams();
+        usp.set('pass', pass);
+        usp.set('action', op.action);
+        usp.set('id', op.id);
+        if (op.action === 'book') {
+            usp.set('date', op.date);
+            usp.set('start', String(op.start));
+            usp.set('hours', String(op.hours));
+            usp.set('type', op.type);
+            usp.set('brand', op.brand || '');
+            usp.set('number', op.number || '');
+        } else if (op.action === 'book_status') {
+            usp.set('status', op.status);
+        } else {
+            sendOne(idx + 1);
+            return;
+        }
+        fetch(SCRIPT_URL, { method: 'POST', body: usp })
+            .then(function(r) { if (!r.ok) throw new Error('http'); return r.text(); })
+            .then(function() { sendOne(idx + 1); })
+            .catch(function() { flushing = false; }); // сеть умерла — на следующем такте
+    }
+
+    // Подтверждение по факту на сервере: book — все поля совпали,
+    // book_status — статус совпал. Повторная досылка перезапишет и подтвердится.
+    function confirmPending(db) {
+        if (pendingOps.length === 0) return;
+        var sched = db.schedule || {};
+        var remaining = [];
+        for (var i = 0; i < pendingOps.length; i++) {
+            var op = pendingOps[i];
+            var srv = findInSched(sched, op.id);
+            var confirmed = false;
+            if (op.action === 'book') {
+                confirmed = !!srv
+                    && srv.start === op.start
+                    && srv.hours === op.hours
+                    && String(srv.type) === String(op.type)
+                    && String(srv.brand || '') === String(op.brand || '')
+                    && String(srv.number || '') === String(op.number || '');
+            } else if (op.action === 'book_status') {
+                confirmed = !!srv && srv.status === op.status;
+            }
+            if (!confirmed) remaining.push(op);
+        }
+        if (remaining.length !== pendingOps.length) {
+            pendingOps = remaining;
+            savePending();
+        }
+    }
+
+    function findInSched(sched, id) {
+        for (var d in sched) {
+            if (!sched.hasOwnProperty(d)) continue;
+            var list = sched[d] || [];
+            for (var j = 0; j < list.length; j++) {
+                if (String(list[j].id) === String(id)) return list[j];
+            }
+        }
+        return null;
+    }
+
+    // Рабочий вид = сервер + непотверждённые события (optimistic)
+    function buildView() {
+        var view = {};
+        var sched = lastDb ? (lastDb.schedule || {}) : {};
+        for (var d in sched) {
+            if (sched.hasOwnProperty(d)) view[d] = JSON.parse(JSON.stringify(sched[d] || []));
+        }
+        for (var i = 0; i < pendingOps.length; i++) {
+            var op = pendingOps[i];
+            if (op.action === 'book') {
+                var list = view[op.date] || (view[op.date] = []);
+                var found = false;
+                for (var j = 0; j < list.length; j++) {
+                    if (String(list[j].id) === String(op.id)) {
+                        list[j].start = op.start; list[j].hours = op.hours; list[j].type = op.type;
+                        list[j].brand = op.brand; list[j].number = op.number;
+                        found = true; break;
+                    }
+                }
+                if (!found) {
+                    list.push({ id: op.id, date: op.date, start: op.start, hours: op.hours, type: op.type, brand: op.brand, number: op.number, status: 'booked' });
+                }
+            } else if (op.action === 'book_status') {
+                var b = findInSched(view, op.id);
+                if (b) b.status = op.status;
+            }
+        }
+        return view;
+    }
+
+    // ---------- Сеть ----------
+
+    function refreshNow() {
+        if (fetchInFlight) return;
+        fetchInFlight = true;
+        fetch(SCRIPT_URL + '?mode=fetch_json', { method: 'GET', cache: 'no-store' })
+            .then(function(r) { if (!r.ok) throw new Error('http'); return r.json(); })
+            .then(function(db) {
+                lastDb = db;
+                lastUpdated = new Date();
+                confirmPending(db);
+                updateStatusLine();
+                renderBookDay();
+            })
+            .catch(function() {
+                if (pendingOps.length === 0) setStatus('Нет связи с сервером', 'err');
+            })
+            .then(function() { fetchInFlight = false; });
+    }
+
+    // ---------- Экран записи ----------
+
+    function goToday() { bookYmd = todayYmd(); renderBookDay(); }
+
+    function shiftDay(delta) {
+        var p = bookYmd.split('-');
+        var d = new Date(+p[0], +p[1] - 1, +p[2]);
+        d.setDate(d.getDate() + delta);
+        var ymd = d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+        var lo = ymdLimit(-3), hi = ymdLimit(30);
+        if (ymd < lo) ymd = lo;
+        if (ymd > hi) ymd = hi;
+        bookYmd = ymd;
+        renderBookDay();
+    }
+
+    function renderBookDay() {
+        var el = $('bv-date');
+        if (el) el.textContent = ymdLabel(bookYmd);
+        var tbtn = $('btn-today');
+        if (tbtn) tbtn.style.display = (bookYmd === todayYmd()) ? 'none' : '';
+
+        var view = buildView();
+        var list = view[bookYmd] || [];
+        var occ = {};
+        var i, b;
+        for (i = 0; i < list.length; i++) {
+            b = list[i];
+            if (b.status === 'booked' || b.status === 'done') {
+                for (var h = b.start; h < b.start + b.hours; h++) occ[h] = b;
+            }
+        }
+
+        var c = $('book-slots');
+        if (!c) return;
+        c.innerHTML = '';
+        for (var hh = 8; hh <= 17; hh++) {
+            b = occ[hh];
+            var row = document.createElement('div');
+            if (!b) {
+                row.className = 'slot-row slot-free';
+                row.innerHTML = '<div class="slot-time">' + hh + ':00</div><div class="slot-mid">+ записать</div>';
+                (function(slot) {
+                    row.onclick = function() { openForm(null, slot, 'car'); };
+                })(hh);
+            } else if (b.start === hh) {
+                var txt = ((b.brand || '—') + ' ' + (b.number || '—')).trim();
+                if (b.status === 'done') {
+                    row.className = 'slot-row slot-done';
+                    row.innerHTML = '<div class="slot-time">' + hh + ':00</div><div class="slot-mid">✓ сделано: ' + esc(txt) + '</div>';
+                } else {
+                    row.className = 'slot-row';
+                    row.innerHTML = '<div class="slot-time">' + hh + ':00</div><div class="slot-mid">' + esc(txt) + '</div>';
+                    (function(bk) {
+                        row.onclick = function() { openActionModal(bk); };
+                    })(b);
+                }
+            } else {
+                row.className = 'slot-row slot-cont';
+                row.innerHTML = '<div class="slot-time">' + hh + ':00</div><div class="slot-mid">⤷ 2-й час (' + esc(b.brand || '—') + ')</div>';
+            }
+            c.appendChild(row);
+        }
+    }
+
+    // ---------- Форма записи ----------
+
+    function openForm(editBk, slot, vtype) {
+        formCtx.editId = editBk ? editBk.id : null;
+        $('fm-title').textContent = editBk ? 'Изменить запись' : 'Новая запись';
+        $('fm-start').value = editBk ? editBk.start : slot;
+        $('fm-brand').value = editBk ? (editBk.brand || '') : '';
+        $('fm-number').value = editBk ? (editBk.number || '') : '';
+        setFormType(editBk ? editBk.type : (vtype || 'car'));
+        $('form-modal').classList.add('open');
+    }
+
+    function closeFormModal() { $('form-modal').classList.remove('open'); }
+
+    function setFormType(t) {
+        formCtx.type = t;
+        $('ft-car').className = 'type-btn' + (t === 'car' ? ' active' : '');
+        $('ft-van').className = 'type-btn' + (t === 'van' ? ' active' : '');
+    }
+
+    function saveForm() {
+        var start = parseInt($('fm-start').value, 10);
+        var vtype = formCtx.type;
+        var hours = vtype === 'van' ? 2 : 1;
+        var brand = $('fm-brand').value.trim();
+        var number = $('fm-number').value.trim();
+        if (isNaN(start) || start < 8 || start > 17) { toast('Час начала: 8–17'); return; }
+        if (vtype === 'van' && start > 16) { toast('Газели — старт до 16:00'); return; }
+        if (!brand && !number) { toast('Введите марку или номер'); return; }
+
+        // Проверка занятости (кроме самой редактируемой записи)
+        var view = buildView();
+        var list = view[bookYmd] || [];
+        for (var i = 0; i < list.length; i++) {
+            var b = list[i];
+            if (formCtx.editId && String(b.id) === String(formCtx.editId)) continue;
+            if (b.status === 'booked' || b.status === 'done') {
+                if (start < b.start + b.hours && b.start < start + hours) { toast('Этот час уже занят'); return; }
+            }
+        }
+
+        var id = formCtx.editId || ('opbk' + Date.now());
+        closeFormModal();
+        queueOp({
+            action: 'book', id: id, date: bookYmd,
+            start: start, hours: hours, type: vtype,
+            brand: brand, number: number
+        });
+        toast(formCtx.editId ? 'Изменения сохранены' : 'Запись добавлена');
+        renderBookDay();
+    }
+
+    // ---------- Действия с записью ----------
+
+    function openActionModal(bk) {
+        actionCtx.bk = bk;
+        var txt = ((bk.brand || '—') + ' ' + (bk.number || '—')).trim();
+        $('am-title').textContent = txt + ' · ' + bk.start + ':00–' + (bk.start + bk.hours) + ':00';
+        $('action-modal').classList.add('open');
+    }
+
+    function closeActionModal() {
+        $('action-modal').classList.remove('open');
+        actionCtx.bk = null;
+    }
+
+    function editFromAction() {
+        var bk = actionCtx.bk;
+        closeActionModal();
+        openForm(bk, bk.start, bk.type);
+    }
+
+    function doStatus(status) {
+        var bk = actionCtx.bk;
+        if (!bk) { closeActionModal(); return; }
+        closeActionModal();
+        queueOp({ action: 'book_status', id: bk.id, status: status });
+        toast('Статус обновлён');
+        renderBookDay();
+    }
+
+    // ---------- Автообновление ----------
+
+    setInterval(function() {
+        if (document.visibilityState === 'visible') {
+            refreshNow();
+            flushPending();
+        }
+    }, AUTO_REFRESH_MS);
+
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+            refreshNow();
+            flushPending();
+        }
+    });
+
+    // ---------- Инициализация ----------
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(function() {});
+    }
+
+    loadPending();
+    pass = localStorage.getItem(PASS_KEY) || '';
+    if (pass) { enterApp(); } else { showLock(); }
+</script>
+</body>
+</html>
