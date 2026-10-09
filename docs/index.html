@@ -19,10 +19,10 @@
         body {
             padding-top: 20px;
             padding-top: env(safe-area-inset-top);
-            padding-bottom: 20px;
-            padding-bottom: env(safe-area-inset-bottom);
+            padding-bottom: 100px; /* место под закреплённую панель */
+            padding-bottom: calc(100px + env(safe-area-inset-bottom));
         }
-        .wrap { max-width: 640px; margin: 0 auto; padding: 0 16px 30px; }
+        .wrap { max-width: 640px; margin: 0 auto; padding: 0 16px; }
 
         .app-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
         .app-title { font-size: 20px; font-weight: 700; color: #ffffff; }
@@ -43,18 +43,33 @@
         .empty { color: #aaaaaa; font-size: 16px; }
 
         .btn { border: none; border-radius: 8px; font-weight: 600; font-size: 16px; padding: 14px; cursor: pointer; }
-        .btn-full { width: 100%; margin: 6px 0; }
         .btn-green { background-color: #2e7d32; color: #ffffff; }
-        .btn-grey { background-color: #333333; color: #e0e0e0; }
 
-        /* Кнопки внизу страницы (как в Android-версии шефа) */
-        .bottom-btns { margin-top: 18px; }
-        .bottom-btn { width: 100%; margin: 8px 0 0 0; padding: 14px; font-size: 16px; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; color: #ffffff; }
-        .bottom-btn:active { opacity: 0.7; }
-        .btn-update { background-color: #1565c0; }
-        .btn-book { background-color: #00838f; }
+        /* Закреплённая панель внизу: кнопка «Запись» всегда на экране */
+        .bottom-bar {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            z-index: 100;
+            background-color: #1a1a1a;
+            border-top: 2px solid #252525;
+            padding: 10px 16px;
+            padding-bottom: calc(10px + env(safe-area-inset-bottom));
+            box-shadow: 0 -5px 15px rgba(0,0,0,0.6);
+        }
+        .bottom-bar .btn-book {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: 700;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            color: #ffffff;
+            background-color: #00838f;
+        }
+        .bottom-bar .btn-book:active { opacity: 0.7; }
 
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 100%; bottom: 0; right: 0; background-color: rgba(0,0,0,0.85); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.85); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
         .modal-overlay.open { display: flex; }
         .modal { background-color: #1e1e1e; border-radius: 12px; padding: 20px; width: 100%; max-width: 400px; }
         .modal-title { font-size: 18px; font-weight: 700; color: #ffffff; margin-bottom: 14px; text-align: center; }
@@ -78,11 +93,11 @@
     </div>
 
     <div id="content"></div>
+</div>
 
-    <div class="bottom-btns">
-        <button class="bottom-btn btn-update" onclick="checkForUpdate()">Проверить обновления</button>
-        <button class="bottom-btn btn-book" onclick="showBookInfo()">Запись</button>
-    </div>
+<!-- Закреплённая панель: Запись -->
+<div class="bottom-bar">
+    <button class="btn-book" onclick="showBookInfo()">Запись клиентов</button>
 </div>
 
 <!-- Окно записи -->
@@ -322,27 +337,6 @@
 
     function closeBookInfo() {
         document.getElementById('book-modal').classList.remove('open');
-    }
-
-    // ---------- Проверка обновлений (как в Android-версии) ----------
-
-    function checkForUpdate() {
-        fetch(SCRIPT_URL + '?mode=check_update', { method: 'GET', cache: 'no-store' })
-            .then(function(r) { if (!r.ok) throw new Error('http'); return r.json(); })
-            .then(function(cfg) {
-                var serverVersion = cfg.version;
-                var updateUrl = cfg.url;
-                if (serverVersion > 1) {
-                    if (confirm('Доступна новая версия. Открыть страницу скачивания?')) {
-                        window.open(updateUrl, '_blank');
-                    }
-                } else {
-                    alert('У вас установлена последняя версия!');
-                }
-            })
-            .catch(function() {
-                alert('Ошибка проверки');
-            });
     }
 
     // ---------- Автообновление и жизненный цикл ----------
