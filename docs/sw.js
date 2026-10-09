@@ -1,6 +1,6 @@
 // Service worker вьювера шефа: кэшируем ТОЛЬКО оболочку (HTML/иконки).
 // Данные (fetch_json) всегда идут мимо кэша — никаких устаревших сумм.
-var CACHE_NAME = 'shino-boss-v1';
+var CACHE_NAME = 'shino-boss-v2';
 var SHELL = [
   './',
   './index.html',
