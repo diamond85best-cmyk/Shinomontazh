@@ -5,13 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Журнал Шиномонтаж</title>
 
-    <!-- iOS: запуск как приложение, без адресной строки -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Журнал">
     <link rel="apple-touch-icon" href="icon-180.png">
 
-    <!-- Android-браузеры (если шеф откроет с андроида) -->
     <meta name="theme-color" content="#121212">
     <link rel="manifest" href="manifest.json">
 
@@ -19,12 +17,12 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
         html, body { background-color: #121212; color: #e0e0e0; }
         body {
-            padding-top: 20px; /* запас под статус-бар */
+            padding-top: 20px;
             padding-top: env(safe-area-inset-top);
             padding-bottom: 20px;
             padding-bottom: env(safe-area-inset-bottom);
         }
-        .wrap { max-width: 640px; margin: 0 auto; padding: 0 16px; }
+        .wrap { max-width: 640px; margin: 0 auto; padding: 0 16px 30px; }
 
         .app-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
         .app-title { font-size: 20px; font-weight: 700; color: #ffffff; }
@@ -37,15 +35,34 @@
         .card { background-color: #1e1e1e; border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; }
         .card .line { font-size: 16px; color: #e0e0e0; line-height: 1.55; white-space: pre-wrap; }
         .card .line.big { font-size: 18px; }
-        .card .line .lbl { color: #aaaaaa; }
 
         .report { font-size: 14px; }
 
         .divider { height: 2px; background-color: #333333; margin: 22px 0 6px; }
 
-        .install-hint { background-color: #1e1e1e; border-radius: 10px; padding: 12px 16px; margin: 16px 0; font-size: 14px; color: #aaaaaa; line-height: 1.5; }
-
         .empty { color: #aaaaaa; font-size: 16px; }
+
+        .btn { border: none; border-radius: 8px; font-weight: 600; font-size: 16px; padding: 14px; cursor: pointer; }
+        .btn-full { width: 100%; margin: 6px 0; }
+        .btn-green { background-color: #2e7d32; color: #ffffff; }
+        .btn-grey { background-color: #333333; color: #e0e0e0; }
+
+        /* Кнопки внизу страницы (как в Android-версии шефа) */
+        .bottom-btns { margin-top: 18px; }
+        .bottom-btn { width: 100%; margin: 8px 0 0 0; padding: 14px; font-size: 16px; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; color: #ffffff; }
+        .bottom-btn:active { opacity: 0.7; }
+        .btn-update { background-color: #1565c0; }
+        .btn-book { background-color: #00838f; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 100%; bottom: 0; right: 0; background-color: rgba(0,0,0,0.85); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+        .modal-overlay.open { display: flex; }
+        .modal { background-color: #1e1e1e; border-radius: 12px; padding: 20px; width: 100%; max-width: 400px; }
+        .modal-title { font-size: 18px; font-weight: 700; color: #ffffff; margin-bottom: 14px; text-align: center; }
+        .modal-text { font-size: 17px; color: #e0e0e0; line-height: 1.65; white-space: pre-wrap; text-align: left; }
+        .modal-btns { display: flex; gap: 10px; margin-top: 14px; }
+        .modal-btns .btn { flex: 1; }
+
+        .install-hint { background-color: #1e1e1e; border-radius: 10px; padding: 12px 16px; margin: 16px 0; font-size: 14px; color: #aaaaaa; line-height: 1.5; }
     </style>
 </head>
 <body>
@@ -57,10 +74,26 @@
     <div class="status-line" id="status-line">Загрузка…</div>
 
     <div id="install-hint" class="install-hint" style="display:none;">
-        Совет: в Safari нажмите «Поделиться» <span style="white-space:nowrap">⎋</span> → «На экран „Домой“» — и журнал станет полноценным приложением с иконкой.
+        Совет: в Safari нажмите «Поделиться» → «На экран „Домой“» — и журнал станет полноценным приложением с иконкой.
     </div>
 
     <div id="content"></div>
+
+    <div class="bottom-btns">
+        <button class="bottom-btn btn-update" onclick="checkForUpdate()">Проверить обновления</button>
+        <button class="bottom-btn btn-book" onclick="showBookInfo()">Запись</button>
+    </div>
+</div>
+
+<!-- Окно записи -->
+<div class="modal-overlay" id="book-modal">
+    <div class="modal">
+        <div class="modal-title">Запись клиентов</div>
+        <div class="modal-text" id="book-text"></div>
+        <div class="modal-btns">
+            <button class="btn btn-green" onclick="closeBookInfo()">Закрыть</button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -68,8 +101,8 @@
     var AUTO_REFRESH_MS = 15000;
     var fetchInFlight = false;
     var lastUpdated = null;
+    var lastDb = null;
 
-    // Подсказка установки: показываем только в браузере (не в standalone-режиме)
     var isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
     if (!isStandalone) { document.getElementById('install-hint').style.display = 'block'; }
 
@@ -87,12 +120,15 @@
         el.className = 'status-line' + (isErr ? ' err' : '');
     }
 
+    // ---------- Данные ----------
+
     function refreshNow() {
         if (fetchInFlight) return;
         fetchInFlight = true;
         fetch(SCRIPT_URL + '?mode=fetch_json', { method: 'GET', cache: 'no-store' })
             .then(function(r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
             .then(function(db) {
+                lastDb = db;
                 lastUpdated = new Date();
                 setStatus('Обновлено: ' + lastUpdated.toLocaleTimeString('ru-RU'));
                 render(db);
@@ -145,7 +181,6 @@
                 if (expenses > 0) lines.push({ text: 'Расходы: -' + expenses + ' руб' });
                 content.appendChild(card(lines));
 
-                // Логи: переводы, затем наличка (новые сверху)
                 var trans = live.transactions || [];
                 var i, t;
 
@@ -206,12 +241,116 @@
         }
     }
 
-    // Автообновление: только когда вкладка видима (в фоне iOS сам морозит таймеры)
+    // ---------- Запись: статистика для шефа ----------
+
+    var WD = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+    var MG = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+
+    function pad2(n) { return (n < 10 ? '0' : '') + n; }
+    function ymdOf(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+    function ymdLabel(ymd) {
+        var p = ymd.split('-');
+        var d = new Date(+p[0], +p[1] - 1, +p[2]);
+        var today = ymdOf(new Date());
+        var tomorrow = ymdOf(new Date(Date.now() + 86400000));
+        if (ymd === today) return 'сегодня';
+        if (ymd === tomorrow) return 'завтра';
+        return WD[d.getDay()] + ', ' + d.getDate() + ' ' + MG[d.getMonth()];
+    }
+
+    function showBookInfo() {
+        var text;
+        if (!lastDb) {
+            text = 'Нет данных — нажмите «Обновить».';
+        } else {
+            try {
+                var sched = lastDb.schedule || {};
+                var d, i, b;
+
+                // 1. Всего записанных (booked), сегодня..+30
+                var totalBooked = 0;
+                var today = ymdOf(new Date());
+                var hi = ymdOf(new Date(Date.now() + 30 * 86400000));
+                for (d in sched) {
+                    if (sched.hasOwnProperty(d)) {
+                        if (d < today || d > hi) continue;
+                        var list = sched[d] || [];
+                        for (i = 0; i < list.length; i++) {
+                            if (list[i].status === 'booked') totalBooked++;
+                        }
+                    }
+                }
+
+                // 2. Ближайшие 3 свободных слота (с текущего часа сегодня)
+                var free = [];
+                var now = new Date();
+                var nowHour = now.getHours();
+                for (var dayOffset = 0; dayOffset <= 30 && free.length < 3; dayOffset++) {
+                    var ymd = ymdOf(new Date(now.getTime() + dayOffset * 86400000));
+                    var dayList = sched[ymd] || [];
+                    var busy = {};
+                    for (i = 0; i < dayList.length; i++) {
+                        b = dayList[i];
+                        if (b.status === 'booked' || b.status === 'done') {
+                            for (var h = b.start; h < b.start + b.hours; h++) busy[h] = true;
+                        }
+                    }
+                    var firstH = (dayOffset === 0) ? Math.max(8, nowHour) : 8;
+                    for (var hh = firstH; hh <= 17 && free.length < 3; hh++) {
+                        if (!busy[hh]) {
+                            free.push(ymdLabel(ymd) + ', ' + (hh < 10 ? '0' : '') + hh + ':00');
+                        }
+                    }
+                }
+
+                text = 'Записано клиентов (впереди): ' + totalBooked + '\n\n';
+                text += 'Ближайшие свободные слоты:\n';
+                if (free.length === 0) {
+                    text += '  свободных слотов нет';
+                } else {
+                    for (i = 0; i < free.length; i++) {
+                        text += '  ' + free[i] + '\n';
+                    }
+                }
+            } catch (e) {
+                text = 'Ошибка подсчёта';
+            }
+        }
+        document.getElementById('book-text').textContent = text;
+        document.getElementById('book-modal').classList.add('open');
+    }
+
+    function closeBookInfo() {
+        document.getElementById('book-modal').classList.remove('open');
+    }
+
+    // ---------- Проверка обновлений (как в Android-версии) ----------
+
+    function checkForUpdate() {
+        fetch(SCRIPT_URL + '?mode=check_update', { method: 'GET', cache: 'no-store' })
+            .then(function(r) { if (!r.ok) throw new Error('http'); return r.json(); })
+            .then(function(cfg) {
+                var serverVersion = cfg.version;
+                var updateUrl = cfg.url;
+                if (serverVersion > 1) {
+                    if (confirm('Доступна новая версия. Открыть страницу скачивания?')) {
+                        window.open(updateUrl, '_blank');
+                    }
+                } else {
+                    alert('У вас установлена последняя версия!');
+                }
+            })
+            .catch(function() {
+                alert('Ошибка проверки');
+            });
+    }
+
+    // ---------- Автообновление и жизненный цикл ----------
+
     setInterval(function() {
         if (document.visibilityState === 'visible') { refreshNow(); }
     }, AUTO_REFRESH_MS);
 
-    // Возврат в приложение после сворачивания — освежить сразу
     document.addEventListener('visibilitychange', function() {
         if (document.visibilityState === 'visible') { refreshNow(); }
     });
