@@ -1,6 +1,6 @@
 // Табло: офлайн-заглушка для первого захода без сети.
 // Данные НИКОГДА не из кэша — только живьём с сервера.
-var CACHE_NAME = 'shino-slots-v2';
+var CACHE_NAME = 'shino-slots-v3';
 var SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', function(e) {
