@@ -25,13 +25,30 @@
         .btn-mini-red { background-color: #e53935; }
         .btn-today { background-color: #00838f; }
 
-        .daynav { display: flex; align-items: center; gap: 8px; padding: 8px 0 14px 0; }
+        .daynav { display: flex; align-items: center; gap: 8px; padding: 8px 0 6px 0; }
         .daynav .arr { width: 52px; flex-shrink: 0; background: #333333; color: #ffffff; border: none; border-radius: 8px; padding: 10px 0; font-size: 24px; font-weight: 700; cursor: pointer; }
+        .daynav .calbtn { width: 52px; flex-shrink: 0; background: #333333; color: #ffffff; border: none; border-radius: 8px; padding: 10px 0; font-size: 22px; cursor: pointer; }
         .daynav .date { flex: 1; text-align: center; color: #ffffff; font-weight: 600; font-size: 17px; }
 
         .status-line { font-size: 12px; color: #888888; margin-bottom: 12px; min-height: 14px; }
         .status-line.warn { color: #ff9800; }
         .status-line.err { color: #e53935; }
+
+        /* Мини-календарь */
+        .mini-cal { display: none; background: #1e1e1e; border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+        .mini-cal.open { display: block; }
+        .mc-head { display: flex; align-items: center; margin-bottom: 10px; }
+        .mc-title { flex: 1; text-align: center; color: #ffffff; font-weight: 700; font-size: 17px; text-transform: capitalize; }
+        .mc-nav { width: 44px; height: 44px; background: #333333; color: #ffffff; border: none; border-radius: 8px; font-size: 20px; font-weight: 700; cursor: pointer; }
+        .mc-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .mc-dow { text-align: center; color: #888888; font-size: 12px; font-weight: 700; padding: 4px 0; }
+        .mc-day { position: relative; text-align: center; padding: 8px 0 12px 0; border-radius: 8px; font-size: 17px; color: #e0e0e0; cursor: pointer; }
+        .mc-day.out { color: #555555; cursor: default; }
+        .mc-day.today { border: 2px solid #4caf50; }
+        .mc-day.sel { background: #4caf50; color: #ffffff; font-weight: 700; }
+        .mc-dot { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 7px; height: 7px; border-radius: 50%; }
+        .mc-dot.free { background: #4caf50; }
+        .mc-dot.full { background: #e53935; }
 
         .slot-row { display: flex; align-items: stretch; background: #252525; border-radius: 10px; margin-bottom: 8px; overflow: hidden; min-height: 58px; }
         .slot-time { width: 70px; flex-shrink: 0; background: #333333; color: #4CAF50; font-weight: 700; font-size: 21px; display: flex; align-items: center; justify-content: center; }
@@ -91,7 +108,16 @@
             <div class="daynav">
                 <button class="arr" onclick="shiftDay(-1)">‹</button>
                 <div class="date" id="bv-date"></div>
+                <button class="calbtn" onclick="toggleMiniCal()">📅</button>
                 <button class="arr" onclick="shiftDay(1)">›</button>
+            </div>
+            <div class="mini-cal" id="mini-cal">
+                <div class="mc-head">
+                    <button class="mc-nav" onclick="calShiftMonth(-1)">‹</button>
+                    <div class="mc-title" id="mc-title"></div>
+                    <button class="mc-nav" onclick="calShiftMonth(1)">›</button>
+                </div>
+                <div class="mc-grid" id="mc-grid"></div>
             </div>
             <div class="status-line" id="status-line"></div>
             <div id="install-hint" class="install-hint" style="display:none;">
@@ -101,7 +127,7 @@
         </div>
     </div>
 
-    <!-- Модалка: форма записи (новая / изменение) -->
+    <!-- Модалка: форма записи -->
     <div class="modal-overlay" id="form-modal">
         <div class="modal">
             <div class="modal-title" id="fm-title">Новая запись</div>
@@ -110,7 +136,7 @@
                 <button id="ft-van" class="type-btn" onclick="setFormType('van')">Газель-класс · 2 часа</button>
             </div>
             <input type="number" id="fm-start" class="pay-input" placeholder="Час начала (8–17)">
-            <input type="text" id="fm-brand" class="pay-input" style="text-align:left;padding-left:14px;font-size:20px;" placeholder="Марка авто" list="brand-list">
+            <input type="text" id="fm-brand" class="pay-input" style="text-align:left;padding-left:14px;font-size:20px;" placeholder="Марка" list="brand-list">
             <input type="number" id="fm-number" class="pay-input" placeholder="Госномер (только цифры)">
             <div class="modal-btns">
                 <button class="btn btn-grey" onclick="closeFormModal()">Отмена</button>
@@ -195,11 +221,13 @@
     var toastTimer = null;
 
     var bookYmd = null;
+    var calMonth = null;
     var formCtx = { editId: null, type: 'car' };
     var actionCtx = { bk: null };
 
     var WD = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
     var MG = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+    var MGnom = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 
     function $(id) { return document.getElementById(id); }
     function pad2(n) { return (n < 10 ? '0' : '') + n; }
@@ -254,6 +282,7 @@
         $('lock-screen').style.display = 'none';
         $('app').style.display = 'block';
         if (bookYmd == null) bookYmd = todayYmd();
+        if (calMonth == null) { var n = new Date(); calMonth = { y: n.getFullYear(), m: n.getMonth() }; }
         var isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
         $('install-hint').style.display = isStandalone ? 'none' : 'block';
         renderBookDay();
@@ -308,7 +337,6 @@
         flushPending();
     }
 
-    // Досылка строго по одному, по порядку
     function flushPending() {
         if (flushing || pendingOps.length === 0) return;
         flushing = true;
@@ -342,11 +370,9 @@
         fetch(SCRIPT_URL, { method: 'POST', body: usp })
             .then(function(r) { if (!r.ok) throw new Error('http'); return r.text(); })
             .then(function() { sendOne(idx + 1); })
-            .catch(function() { flushing = false; }); // сеть умерла — на следующем такте
+            .catch(function() { flushing = false; });
     }
 
-    // Подтверждение по факту на сервере: book — все поля совпали,
-    // book_status — статус совпал. Повторная досылка перезапишет и подтвердится.
     function confirmPending(db) {
         if (pendingOps.length === 0) return;
         var sched = db.schedule || {};
@@ -384,7 +410,6 @@
         return null;
     }
 
-    // Рабочий вид = сервер + непотверждённые события (optimistic)
     function buildView() {
         var view = {};
         var sched = lastDb ? (lastDb.schedule || {}) : {};
@@ -427,6 +452,7 @@
                 confirmPending(db);
                 updateStatusLine();
                 renderBookDay();
+                if ($('mini-cal').classList.contains('open')) renderMiniCal();
             })
             .catch(function() {
                 if (pendingOps.length === 0) setStatus('Нет связи с сервером', 'err');
@@ -436,7 +462,7 @@
 
     // ---------- Экран записи ----------
 
-    function goToday() { bookYmd = todayYmd(); renderBookDay(); }
+    function goToday() { bookYmd = todayYmd(); renderBookDay(); if ($('mini-cal').classList.contains('open')) renderMiniCal(); }
 
     function shiftDay(delta) {
         var p = bookYmd.split('-');
@@ -448,7 +474,100 @@
         if (ymd > hi) ymd = hi;
         bookYmd = ymd;
         renderBookDay();
+        if ($('mini-cal').classList.contains('open')) renderMiniCal();
     }
+
+    // ===== МИНИ-КАЛЕНДАРЬ =====
+    function toggleMiniCal() {
+        var el = $('mini-cal');
+        if (el.classList.contains('open')) { closeMiniCal(); return; }
+        el.classList.add('open');
+        renderMiniCal();
+    }
+    function closeMiniCal() { $('mini-cal').classList.remove('open'); }
+
+    function calShiftMonth(delta) {
+        if (!calMonth) return;
+        var m = calMonth.m + delta;
+        var y = calMonth.y;
+        if (m < 0) { m = 11; y--; }
+        if (m > 11) { m = 0; y++; }
+        calMonth = { y: y, m: m };
+        renderMiniCal();
+    }
+
+    function dayHasFreeSlot(ymd) {
+        var view = buildView();
+        var list = view[ymd] || [];
+        var busy = {};
+        for (var i = 0; i < list.length; i++) {
+            var b = list[i];
+            if (b.status === 'booked' || b.status === 'done') {
+                for (var h = b.start; h < b.start + b.hours && h <= 17; h++) busy[h] = true;
+            }
+        }
+        for (var hh = 8; hh <= 17; hh++) { if (!busy[hh]) return true; }
+        return false;
+    }
+
+    function renderMiniCal() {
+        if (!calMonth) return;
+        var min = ymdLimit(-3);
+        var max = ymdLimit(30);
+        var today = todayYmd();
+        var view = buildView();
+
+        $('mc-title').innerText = MGnom[calMonth.m] + ' ' + calMonth.y;
+
+        var grid = $('mc-grid');
+        grid.innerHTML = '';
+
+        var dows = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+        for (var i = 0; i < 7; i++) {
+            var dow = document.createElement('div');
+            dow.className = 'mc-dow';
+            dow.innerText = dows[i];
+            grid.appendChild(dow);
+        }
+
+        var first = new Date(calMonth.y, calMonth.m, 1);
+        var firstDow = first.getDay() === 0 ? 7 : first.getDay();
+        for (var e = 1; e < firstDow; e++) {
+            var empty = document.createElement('div');
+            empty.className = 'mc-day out';
+            empty.innerHTML = '&nbsp;';
+            grid.appendChild(empty);
+        }
+
+        var daysInMonth = new Date(calMonth.y, calMonth.m + 1, 0).getDate();
+        for (var dd = 1; dd <= daysInMonth; dd++) {
+            var dayEl = document.createElement('div');
+            var ymd = calMonth.y + '-' + pad2(calMonth.m + 1) + '-' + pad2(dd);
+            var inRange = (ymd >= min && ymd <= max);
+            var cls = 'mc-day';
+            if (!inRange) { cls += ' out'; }
+            if (ymd === today) { cls += ' today'; }
+            if (ymd === bookYmd) { cls += ' sel'; }
+            dayEl.className = cls;
+            dayEl.innerText = String(dd);
+            if (inRange) {
+                if (view[ymd] && view[ymd].length > 0) {
+                    var dot = document.createElement('div');
+                    dot.className = 'mc-dot ' + (dayHasFreeSlot(ymd) ? 'free' : 'full');
+                    dayEl.appendChild(dot);
+                }
+                (function(ymdClick) {
+                    dayEl.onclick = function() {
+                        bookYmd = ymdClick;
+                        closeMiniCal();
+                        renderBookDay();
+                    };
+                })(ymd);
+            }
+            grid.appendChild(dayEl);
+        }
+    }
+    // ===== КОНЕЦ МИНИ-КАЛЕНДАРЯ =====
 
     function renderBookDay() {
         var el = $('bv-date');
@@ -502,8 +621,9 @@
     // ---------- Форма записи ----------
 
     function openForm(editBk, slot, vtype) {
+        var isEdit = !!editBk;
         formCtx.editId = editBk ? editBk.id : null;
-        $('fm-title').textContent = editBk ? 'Изменить запись' : 'Новая запись';
+        $('fm-title').textContent = isEdit ? 'Изменить запись' : 'Новая запись';
         $('fm-start').value = editBk ? editBk.start : slot;
         $('fm-brand').value = editBk ? (editBk.brand || '') : '';
         $('fm-number').value = editBk ? (editBk.number || '') : '';
@@ -529,7 +649,6 @@
         if (vtype === 'van' && start > 16) { toast('Газели — старт до 16:00'); return; }
         if (!brand && !number) { toast('Введите марку или номер'); return; }
 
-        // Проверка занятости (кроме самой редактируемой записи)
         var view = buildView();
         var list = view[bookYmd] || [];
         for (var i = 0; i < list.length; i++) {
@@ -549,6 +668,7 @@
         });
         toast(formCtx.editId ? 'Изменения сохранены' : 'Запись добавлена');
         renderBookDay();
+        if ($('mini-cal').classList.contains('open')) renderMiniCal();
     }
 
     // ---------- Действия с записью ----------
@@ -578,6 +698,7 @@
         queueOp({ action: 'book_status', id: bk.id, status: status });
         toast('Статус обновлён');
         renderBookDay();
+        if ($('mini-cal').classList.contains('open')) renderMiniCal();
     }
 
     // ---------- Автообновление ----------
