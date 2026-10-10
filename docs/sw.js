@@ -1,6 +1,8 @@
-// Service worker вьювера шефа: кэшируем ТОЛЬКО оболочку (HTML/иконки).
-// Данные (fetch_json) всегда идут мимо кэша — никаких устаревших сумм.
-var CACHE_NAME = 'shino-boss-v5';
+// Service worker вьювера шефа v6: кэшируем ТОЛЬКО оболочку шефа.
+// НОВОЕ: если запрошен путь вне корня /Shinomontazh/ (т.е. чужая подпапка —
+// /slots/, /booking/, /admin/, /master/) — не вмешиваемся вообще.
+// Раньше SW шефа мог перехватывать и подменять чужие страницы своим кэшем.
+var CACHE_NAME = 'shino-boss-v6';
 var SHELL = [
   './',
   './index.html',
@@ -34,12 +36,21 @@ self.addEventListener('fetch', function(e) {
   // Всё стороннее (сервер GAS) — только сеть, не перехватываем
   if (url.origin !== self.location.origin) return;
 
-  // Оболочка: кэш первым, сеть — запасным
+  // НОВОЕ v6: чужие подпапки — не наше дело, отдаём сети как есть.
+  // Путь должен быть ровно корнем /Shinomontazh/ (возможно, со слэшем на конце)
+  // или начинаться с /Shinomontazh/ без следующего сегмента-подпапки.
+  var scope = self.location.pathname.replace(/[^\/]*$/, ''); // /Shinomontazh/
+  var path = url.pathname;
+  if (path !== scope && path !== scope + 'index.html' && path.indexOf(scope) === 0) {
+    // это /Shinomontazh/<что-то>/... — подпапка другого приложения
+    return;
+  }
+
+  // Оболочка шефа: кэш первым, сеть — запасным
   e.respondWith(
     caches.match(e.request).then(function(cached) {
       if (cached) return cached;
       return fetch(e.request).then(function(resp) {
-        // Навигация при офлайне — отдаём закэшированную страницу
         if (e.request.mode === 'navigate') {
           return caches.match('./index.html');
         }
