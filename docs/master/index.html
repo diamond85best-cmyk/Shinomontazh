@@ -85,9 +85,25 @@
         .bv-title { flex: 1; text-align: center; font-size: 20px; font-weight: 700; color: #ffffff; }
         .bv-today { background: #00838f; color: #ffffff; border: none; border-radius: 8px; padding: 11px 12px; font-size: 14px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
         .bv-close { background: #333333; color: #e0e0e0; border: none; border-radius: 8px; padding: 10px 16px; font-size: 18px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
-        .bv-daynav { display: flex; align-items: center; gap: 8px; padding: 6px 0 16px 0; }
+        .bv-daynav { display: flex; align-items: center; gap: 8px; padding: 6px 0 6px 0; }
         .bv-arrow { width: 46px; height: 46px; flex-shrink: 0; background: #333333; color: #ffffff; border: none; border-radius: 8px; font-size: 28px; font-weight: 700; cursor: pointer; }
         .bv-date { flex: 1; text-align: center; font-size: 19px; font-weight: 600; color: #ffffff; }
+        .bv-calbtn { width: 46px; height: 46px; flex-shrink: 0; background: #333333; color: #ffffff; border: none; border-radius: 8px; font-size: 24px; cursor: pointer; }
+        /* Мини-календарь */
+        .mini-cal { display: none; background: #1e1e1e; border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+        .mini-cal.open { display: block; }
+        .mc-head { display: flex; align-items: center; margin-bottom: 10px; }
+        .mc-title { flex: 1; text-align: center; color: #ffffff; font-weight: 700; font-size: 17px; text-transform: capitalize; }
+        .mc-nav { width: 44px; height: 44px; background: #333333; color: #ffffff; border: none; border-radius: 8px; font-size: 20px; font-weight: 700; cursor: pointer; }
+        .mc-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .mc-dow { text-align: center; color: #888888; font-size: 12px; font-weight: 700; padding: 4px 0; }
+        .mc-day { position: relative; text-align: center; padding: 8px 0 12px 0; border-radius: 8px; font-size: 17px; color: #e0e0e0; cursor: pointer; }
+        .mc-day.out { color: #555555; cursor: default; }
+        .mc-day.today { border: 2px solid #4caf50; }
+        .mc-day.sel { background: #4caf50; color: #ffffff; font-weight: 700; }
+        .mc-dot { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 7px; height: 7px; border-radius: 50%; }
+        .mc-dot.free { background: #4caf50; }
+        .mc-dot.full { background: #e53935; }
         .slot-row { display: flex; align-items: stretch; background: #252525; border-radius: 8px; margin-bottom: 8px; overflow: hidden; min-height: 58px; }
         .slot-time { width: 70px; flex-shrink: 0; background: #333333; color: #4caf50; font-weight: 700; font-size: 22px; display: flex; align-items: center; justify-content: center; }
         .slot-mid { flex: 1; display: flex; align-items: center; padding: 10px 14px; font-size: 20px; color: #e0e0e0; }
@@ -206,6 +222,7 @@
     </div>
 </div>
 
+<!-- Экран записи -->
 <div id="booking-view">
     <div class="bv-head">
         <button class="bv-today" id="bv-today-btn" style="display: none;" onclick="bookGoToday()">Сегодня</button>
@@ -215,11 +232,22 @@
     <div class="bv-daynav">
         <button class="bv-arrow" onclick="bookShiftDay(-1)">‹</button>
         <div class="bv-date" id="bv-date"></div>
+        <button class="bv-calbtn" onclick="toggleMiniCal()">📅</button>
         <button class="bv-arrow" onclick="bookShiftDay(1)">›</button>
+    </div>
+    <!-- Мини-календарь -->
+    <div class="mini-cal" id="mini-cal">
+        <div class="mc-head">
+            <button class="mc-nav" onclick="calShiftMonth(-1)">‹</button>
+            <div class="mc-title" id="mc-title"></div>
+            <button class="mc-nav" onclick="calShiftMonth(1)">›</button>
+        </div>
+        <div class="mc-grid" id="mc-grid"></div>
     </div>
     <div id="book-slots"></div>
 </div>
 
+<!-- Форма новой записи -->
 <div class="modal-overlay" id="book-add-modal" style="z-index: 250;">
     <div class="modal-content">
         <h2 style="margin-bottom: 15px;">Новая запись</h2>
@@ -284,6 +312,7 @@
     <option value="Квадроцикл"></option><option value="Снегоход"></option><option value="Мотоцикл"></option>
 </datalist>
 
+<!-- Действия с записью -->
 <div class="modal-overlay" id="book-action-modal" style="z-index: 250;">
     <div class="modal-content">
         <h2 style="margin-bottom: 15px;" id="bam-title"></h2>
@@ -423,7 +452,7 @@
     // ===== ОФЛАЙН-ОЧЕРЕДЬ СОБЫТИЙ =====
     var eventQueue = [];
     var syncTimer = null;
-    var lastFetchOk = null; // для диагностики: когда последний успешный fetch
+    var lastFetchOk = null;
 
     function loadEventQueue() {
         var saved = localStorage.getItem('shino_pending');
@@ -444,7 +473,6 @@
         else { btn.classList.remove('unsent'); }
     }
 
-    // ДИАГНОСТИКА: строка с описанием очереди — показывается в заголовке «Журнала»
     function queueDiagString() {
         if (eventQueue.length === 0) return '';
         var counts = {};
@@ -605,9 +633,12 @@
     var bookCtx = { date: null };
     var addCtx = { start: 11, vtype: 'car' };
     var actionBkId = null;
+    var calMonth = null; // {y, m} отображаемый месяц мини-календаря
 
     var WD = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+    var WDshort = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
     var MG = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+    var MGnom = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 
     function pad2(n) { return (n < 10 ? '0' : '') + n; }
     function dateToYmd(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
@@ -660,16 +691,21 @@
         localSchedule = view;
         saveScheduleLocal();
         renderQueueStrip();
-        if (document.getElementById('booking-view').style.display === 'block') renderBookDay();
+        if (document.getElementById('booking-view').style.display === 'block') {
+            renderBookDay();
+            if (document.getElementById('mini-cal').classList.contains('open')) renderMiniCal();
+        }
     }
 
     function openBookingView() {
         bookCtx.date = dateToYmd(new Date());
+        calMonth = { y: new Date().getFullYear(), m: new Date().getMonth() }; // текущий месяц
         document.getElementById('booking-view').style.display = 'block';
+        closeMiniCal();
         renderBookDay();
     }
-    function closeBookingView() { document.getElementById('booking-view').style.display = 'none'; }
-    function bookGoToday() { bookCtx.date = dateToYmd(new Date()); renderBookDay(); }
+    function closeBookingView() { document.getElementById('booking-view').style.display = 'none'; closeMiniCal(); }
+    function bookGoToday() { bookCtx.date = dateToYmd(new Date()); renderBookDay(); if (document.getElementById('mini-cal').classList.contains('open')) renderMiniCal(); }
 
     function bookShiftDay(delta) {
         var p = bookCtx.date.split('-');
@@ -681,7 +717,105 @@
         if (ymd > max) ymd = max;
         bookCtx.date = ymd;
         renderBookDay();
+        if (document.getElementById('mini-cal').classList.contains('open')) renderMiniCal();
     }
+
+    // ===== МИНИ-КАЛЕНДАРЬ =====
+    function toggleMiniCal() {
+        var el = document.getElementById('mini-cal');
+        if (el.classList.contains('open')) { closeMiniCal(); return; }
+        el.classList.add('open');
+        renderMiniCal();
+    }
+    function closeMiniCal() {
+        document.getElementById('mini-cal').classList.remove('open');
+    }
+
+    function calShiftMonth(delta) {
+        if (!calMonth) return;
+        var m = calMonth.m + delta;
+        var y = calMonth.y;
+        if (m < 0) { m = 11; y--; }
+        if (m > 11) { m = 0; y++; }
+        calMonth = { y: y, m: m };
+        renderMiniCal();
+    }
+
+    // Есть ли в дне хотя бы один свободный слот?
+    function dayHasFreeSlot(ymd) {
+        var list = localSchedule[ymd] || [];
+        var busy = {};
+        for (var i = 0; i < list.length; i++) {
+            var b = list[i];
+            if (b.status === 'booked' || b.status === 'done') {
+                for (var h = b.start; h < b.start + b.hours && h <= 17; h++) busy[h] = true;
+            }
+        }
+        for (var hh = 8; hh <= 17; hh++) { if (!busy[hh]) return true; }
+        return false;
+    }
+
+    function renderMiniCal() {
+        if (!calMonth) return;
+        var min = ymdShift(-3);
+        var max = ymdShift(30);
+        var today = dateToYmd(new Date());
+
+        document.getElementById('mc-title').innerText = MGnom[calMonth.m] + ' ' + calMonth.y;
+
+        var grid = document.getElementById('mc-grid');
+        grid.innerHTML = '';
+
+        // Заголовок дней недели: начинаем с Пн
+        var dows = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+        for (var i = 0; i < 7; i++) {
+            var dow = document.createElement('div');
+            dow.className = 'mc-dow';
+            dow.innerText = dows[i];
+            grid.appendChild(dow);
+        }
+
+        // первый день месяца: (getDay()===0 ? 7 : getDay()) — сдвиг для Пн-начала
+        var first = new Date(calMonth.y, calMonth.m, 1);
+        var firstDow = first.getDay() === 0 ? 7 : first.getDay();
+        // пустые клетки до 1-го
+        for (var e = 1; e < firstDow; e++) {
+            var empty = document.createElement('div');
+            empty.className = 'mc-day out';
+            empty.innerHTML = '&nbsp;';
+            grid.appendChild(empty);
+        }
+
+        var daysInMonth = new Date(calMonth.y, calMonth.m + 1, 0).getDate();
+        for (var dd = 1; dd <= daysInMonth; dd++) {
+            var dayEl = document.createElement('div');
+            var ymd = calMonth.y + '-' + pad2(calMonth.m + 1) + '-' + pad2(dd);
+            var inRange = (ymd >= min && ymd <= max);
+            var cls = 'mc-day';
+            if (!inRange) { cls += ' out'; }
+            if (ymd === today) { cls += ' today'; }
+            if (ymd === bookCtx.date) { cls += ' sel'; }
+            dayEl.className = cls;
+            dayEl.innerText = String(dd);
+            if (inRange) {
+                // точка: зелёная = есть свободные слоты, красная = день полон
+                if (localSchedule[ymd] && localSchedule[ymd].length > 0) {
+                    var dot = document.createElement('div');
+                    dot.className = 'mc-dot ' + (dayHasFreeSlot(ymd) ? 'free' : 'full');
+                    dayEl.appendChild(dot);
+                }
+                (function(ymdClick) {
+                    dayEl.onclick = function() {
+                        bookCtx.date = ymdClick;
+                        closeMiniCal();
+                        renderBookDay();
+                    };
+                })(ymd);
+            }
+            grid.appendChild(dayEl);
+        }
+    }
+    // ===== КОНЕЦ МИНИ-КАЛЕНДАРЯ =====
 
     function renderBookDay() {
         document.getElementById('bv-date').innerText = ymdLabel(bookCtx.date);
@@ -1070,7 +1204,6 @@
         document.body.removeChild(a);
     }
 
-    // ЖУРНАЛ: заголовок теперь показывает диагностику очереди
     function showHistory() {
         fetchJournalFromServer();
         var history = localStorage.getItem('shino_history');
@@ -1141,7 +1274,7 @@
     window.handleJournalFetch = function(jsonStr) {
         try {
             var db = JSON.parse(jsonStr);
-            lastFetchOk = new Date().toLocaleTimeString('ru-RU'); // диагностика
+            lastFetchOk = new Date().toLocaleTimeString('ru-RU');
             confirmEvents(db);
             mergeSchedule(db);
             if (eventQueue.length === 0 && db.live && db.live.isOpen && shift.isOpen
