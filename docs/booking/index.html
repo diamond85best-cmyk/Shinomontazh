@@ -39,8 +39,10 @@
         .mc-head { display: flex; align-items: center; margin-bottom: 10px; }
         .mc-title { flex: 1; text-align: center; color: #ffffff; font-weight: 700; font-size: 17px; text-transform: capitalize; }
         .mc-nav { width: 44px; height: 44px; background: #333333; color: #ffffff; border: none; border-radius: 8px; font-size: 20px; font-weight: 700; cursor: pointer; }
-        .mc-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-        .mc-dow { text-align: center; color: #888888; font-size: 12px; font-weight: 700; padding: 4px 0; }
+        /* Календарь на ТАБЛИЦЕ (KitKat не знает CSS Grid);
+           на новых устройствах выглядит идентично grid-версии */
+        .mc-table { width: 100%; border-collapse: separate; border-spacing: 4px; table-layout: fixed; }
+        .mc-dow { color: #888888; font-size: 12px; font-weight: 700; text-align: center; padding: 4px 0; }
         .mc-day { position: relative; text-align: center; padding: 8px 0 12px 0; border-radius: 8px; font-size: 17px; color: #e0e0e0; cursor: pointer; }
         .mc-day.out { color: #555555; cursor: default; }
         .mc-day.today { border: 2px solid #4caf50; }
@@ -81,6 +83,15 @@
         .lock-err { color: #e53935; font-size: 14px; text-align: center; margin-top: 10px; min-height: 16px; }
 
         .install-hint { background-color: #1e1e1e; border-radius: 10px; padding: 12px 16px; margin: 0 0 14px 0; font-size: 14px; color: #aaaaaa; line-height: 1.5; }
+
+        /* KitKat: gap во flex не знает — отступы через margin.
+           На новых устройствах блок игнорируется. */
+        @supports not (gap: 1px) {
+            .app-header > * + * { margin-left: 8px; }
+            .daynav > * + * { margin-left: 8px; }
+            .type-toggle > * + * { margin-left: 10px; }
+            .modal-btns > * + * { margin-left: 10px; }
+        }
     </style>
 </head>
 <body>
@@ -114,7 +125,7 @@
                     <div class="mc-title" id="mc-title"></div>
                     <button class="mc-nav" onclick="calShiftMonth(1)">›</button>
                 </div>
-                <div class="mc-grid" id="mc-grid"></div>
+                <table class="mc-table" id="mc-table"></table>
             </div>
             <div class="status-line" id="status-line"></div>
             <div id="install-hint" class="install-hint" style="display:none;">
@@ -181,14 +192,13 @@
         <option value="БМВ (BMW)"></option><option value="Х5 (X5)"></option>
         <option value="Смарт (Smart)"></option>
         <option value="Тесла (Tesla)"></option>
-        <option value="БАУ (BAW)"></option><option value="Фотон (Foton)"></option><option value="Донфенг (Dongfeng)"></option>
+        <option value="БАУ (BAW)"></option><option value="Фотون (Foton)"></option><option value="Донфенг (Dongfeng)"></option>
         <option value="Ивеко (Iveco)"></option><option value="Дейли (Daily)"></option>
         <option value="Хино (Hino)"></option><option value="Исудзу (Isuzu)"></option><option value="Кантер (Canter)"></option>
         <option value="Прицеп"></option><option value="Прицеп-дача"></option><option value="Мотоблок"></option><option value="Мотобуксировщик"></option>
         <option value="Квадроцикл"></option><option value="Снегоход"></option><option value="Мотоцикл"></option>
     </datalist>
 
-    <!-- Действия: без «Нет клиента» -->
     <div class="modal-overlay" id="action-modal">
         <div class="modal">
             <div class="modal-title" id="am-title"></div>
@@ -472,7 +482,7 @@
         if ($('mini-cal').classList.contains('open')) renderMiniCal();
     }
 
-    // ===== МИНИ-КАЛЕНДАРЬ =====
+    // ===== МИНИ-КАЛЕНДАРЬ (ТАБЛИЦА: KitKat не знает CSS Grid) =====
     function toggleMiniCal() {
         var el = $('mini-cal');
         if (el.classList.contains('open')) { closeMiniCal(); return; }
@@ -491,7 +501,6 @@
         renderMiniCal();
     }
 
-    // Занятых слотов в дне (booked/done). Для точек.
     function dayBusySlots(ymd) {
         var view = buildView();
         var list = view[ymd] || [];
@@ -515,57 +524,78 @@
 
         $('mc-title').innerText = MGnom[calMonth.m] + ' ' + calMonth.y;
 
-        var grid = $('mc-grid');
-        grid.innerHTML = '';
+        var tbl = $('mc-table');
+        tbl.innerHTML = '';
 
         var dows = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+        var htr = document.createElement('tr');
         for (var i = 0; i < 7; i++) {
-            var dow = document.createElement('div');
-            dow.className = 'mc-dow';
-            dow.innerText = dows[i];
-            grid.appendChild(dow);
+            var th = document.createElement('th');
+            th.className = 'mc-dow';
+            th.innerText = dows[i];
+            htr.appendChild(th);
         }
+        tbl.appendChild(htr);
 
         var first = new Date(calMonth.y, calMonth.m, 1);
         var firstDow = first.getDay() === 0 ? 7 : first.getDay();
+        var daysInMonth = new Date(calMonth.y, calMonth.m + 1, 0).getDate();
+
+        var tr = document.createElement('tr');
         for (var e = 1; e < firstDow; e++) {
-            var empty = document.createElement('div');
-            empty.className = 'mc-day out';
-            empty.innerHTML = '&nbsp;';
-            grid.appendChild(empty);
+            var etd = document.createElement('td');
+            etd.className = 'mc-day out';
+            etd.innerHTML = '&nbsp;';
+            tr.appendChild(etd);
         }
 
-        var daysInMonth = new Date(calMonth.y, calMonth.m + 1, 0).getDate();
         for (var dd = 1; dd <= daysInMonth; dd++) {
-            var dayEl = document.createElement('div');
             var ymd = calMonth.y + '-' + pad2(calMonth.m + 1) + '-' + pad2(dd);
             var inRange = (ymd >= min && ymd <= max);
+            var td = document.createElement('td');
             var cls = 'mc-day';
-            if (!inRange) { cls += ' out'; }
-            if (ymd === today) { cls += ' today'; }
-            if (ymd === bookYmd) { cls += ' sel'; }
-            dayEl.className = cls;
-            dayEl.innerText = String(dd);
+            if (!inRange) cls += ' out';
+            if (ymd === today) cls += ' today';
+            if (ymd === bookYmd) cls += ' sel';
+            td.className = cls;
+
+            var num = document.createElement('span');
+            num.innerText = String(dd);
+            td.appendChild(num);
+
             if (inRange) {
-                // ПРАВИЛА ТОЧКИ: только сегодня/будущее; от ЗАНЯТЫХ слотов
-                // (всё отменили -> нет точки); заняты не все -> зелёная; все 10 -> красная
                 if (ymd >= today) {
                     var busyCnt = dayBusySlots(ymd);
                     if (busyCnt > 0) {
-                        var dot = document.createElement('div');
+                        var dot = document.createElement('span');
                         dot.className = 'mc-dot ' + (busyCnt < 10 ? 'free' : 'full');
-                        dayEl.appendChild(dot);
+                        td.appendChild(dot);
                     }
                 }
                 (function(ymdClick) {
-                    dayEl.onclick = function() {
+                    td.onclick = function() {
                         bookYmd = ymdClick;
                         closeMiniCal();
                         renderBookDay();
                     };
                 })(ymd);
             }
-            grid.appendChild(dayEl);
+
+            tr.appendChild(td);
+            if (tr.children.length === 7) {
+                tbl.appendChild(tr);
+                tr = document.createElement('tr');
+            }
+        }
+
+        if (tr.children.length > 0) {
+            while (tr.children.length < 7) {
+                var ptd = document.createElement('td');
+                ptd.className = 'mc-day out';
+                ptd.innerHTML = '&nbsp;';
+                tr.appendChild(ptd);
+            }
+            tbl.appendChild(tr);
         }
     }
     // ===== КОНЕЦ МИНИ-КАЛЕНДАРЯ =====
