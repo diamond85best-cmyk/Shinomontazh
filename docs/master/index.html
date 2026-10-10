@@ -59,11 +59,9 @@
         .btn-transfer { background-color: #1565c0; flex: 1; }
         .btn-split { background-color: #ff9800; flex: 0.6; font-size: 22px; padding: 10px; }
         .btn-pay:disabled { background-color: #555555 !important; color: #999999; cursor: not-allowed; }
-        /* Быстрые услуги: ряд как у кнопок оплаты (1 : 0.6 : 1) */
         .quick-row { display: flex; gap: 10px; margin-top: 0; }
         .quick-row .btn-nav { padding: 16px; font-size: 22px; }
         .quick-short { flex: 0.6; font-size: 20px !important; padding: 10px !important; }
-        /* Нижняя панель: лента очереди + ряд [Итого слева | Статус Запись Сброс справа] */
         .fixed-total-bar { position: fixed; bottom: 0; left: 0; right: 0; background-color: #1a1a1a; border-top: 2px solid #252525; padding: 10px 20px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; justify-content: flex-start; z-index: 100; width: 100%; max-width: 100%; margin: 0 auto; box-shadow: 0 -5px 15px rgba(0,0,0,0.6); }
         .queue-strip { width: 100%; font-size: 14px; color: #aaaaaa; padding: 2px 0 8px 0; border-bottom: 2px solid #252525; line-height: 1.7; }
         .queue-strip .qn { color: #e0e0e0; font-weight: 600; }
@@ -196,7 +194,6 @@
         <button class="btn-nav btn-back" onclick="changeStep(2)">Назад</button>
     </div>
 </div>
-<!-- Нижняя панель: лента + ряд [Итого слева | Статус(по факту) Запись Сброс справа] -->
 <div class="fixed-total-bar">
     <div class="queue-strip" id="queue-strip">Сейчас: —<br>Далее: —</div>
     <div class="total-row">
@@ -209,7 +206,6 @@
     </div>
 </div>
 
-<!-- Экран записи -->
 <div id="booking-view">
     <div class="bv-head">
         <button class="bv-today" id="bv-today-btn" style="display: none;" onclick="bookGoToday()">Сегодня</button>
@@ -224,7 +220,6 @@
     <div id="book-slots"></div>
 </div>
 
-<!-- Форма новой записи -->
 <div class="modal-overlay" id="book-add-modal" style="z-index: 250;">
     <div class="modal-content">
         <h2 style="margin-bottom: 15px;">Новая запись</h2>
@@ -289,7 +284,6 @@
     <option value="Квадроцикл"></option><option value="Снегоход"></option><option value="Мотоцикл"></option>
 </datalist>
 
-<!-- Действия с записью -->
 <div class="modal-overlay" id="book-action-modal" style="z-index: 250;">
     <div class="modal-content">
         <h2 style="margin-bottom: 15px;" id="bam-title"></h2>
@@ -429,6 +423,7 @@
     // ===== ОФЛАЙН-ОЧЕРЕДЬ СОБЫТИЙ =====
     var eventQueue = [];
     var syncTimer = null;
+    var lastFetchOk = null; // для диагностики: когда последний успешный fetch
 
     function loadEventQueue() {
         var saved = localStorage.getItem('shino_pending');
@@ -448,6 +443,22 @@
         if (eventQueue.length > 0) { btn.classList.add('unsent'); }
         else { btn.classList.remove('unsent'); }
     }
+
+    // ДИАГНОСТИКА: строка с описанием очереди — показывается в заголовке «Журнала»
+    function queueDiagString() {
+        if (eventQueue.length === 0) return '';
+        var counts = {};
+        var parts = [];
+        for (var i = 0; i < eventQueue.length; i++) {
+            var t = eventQueue[i].type;
+            counts[t] = (counts[t] || 0) + 1;
+        }
+        for (var k in counts) {
+            if (counts.hasOwnProperty(k)) parts.push(k + '×' + counts[k]);
+        }
+        return ' [не отпр.: ' + parts.join(', ') + (lastFetchOk ? ' · fetch ' + lastFetchOk : ' · fetch не было') + ']';
+    }
+
     function pushEvent(ev) {
         eventQueue.push(ev);
         saveEventQueue();
@@ -789,7 +800,6 @@
         resendPending();
     }
 
-    // «Статус»: модалка действий для ТЕКУЩЕЙ записи («Сейчас»)
     function showCurrentBookActions() {
         var cur = getCurrentBook();
         if (!cur) {
@@ -812,7 +822,6 @@
         return null;
     }
 
-    // Лента «Сейчас / Далее» + видимость кнопки «Статус»
     function renderQueueStrip() {
         var today = dateToYmd(new Date());
         var list = localSchedule[today] || [];
@@ -841,7 +850,6 @@
         }
         document.getElementById('queue-strip').innerHTML = line('Сейчас', cur) + '<br>' + line('Далее', next);
 
-        // Кнопка «Статус» — только при активной записи на текущий час
         var stBtn = document.getElementById('btn-status-queue');
         if (stBtn) {
             if (cur) { stBtn.classList.remove('hidden'); }
@@ -1062,6 +1070,7 @@
         document.body.removeChild(a);
     }
 
+    // ЖУРНАЛ: заголовок теперь показывает диагностику очереди
     function showHistory() {
         fetchJournalFromServer();
         var history = localStorage.getItem('shino_history');
@@ -1073,7 +1082,7 @@
                 reportText += historyArr[i] + "\n===============================\n\n";
             }
         }
-        document.getElementById('modal-title').innerText = "Журнал смен";
+        document.getElementById('modal-title').innerText = "Журнал смен" + queueDiagString();
         document.getElementById('report-text').value = reportText;
         var dl = document.getElementById('btn-download-journal');
         if (dl) { dl.style.display = isAndroidBridge ? 'none' : 'block'; }
@@ -1132,6 +1141,7 @@
     window.handleJournalFetch = function(jsonStr) {
         try {
             var db = JSON.parse(jsonStr);
+            lastFetchOk = new Date().toLocaleTimeString('ru-RU'); // диагностика
             confirmEvents(db);
             mergeSchedule(db);
             if (eventQueue.length === 0 && db.live && db.live.isOpen && shift.isOpen
@@ -1465,7 +1475,6 @@
         calculateTotal();
     }
 
-    // Вспышка кнопок +/-
     document.addEventListener('click', function(e) {
         var btn = e.target;
         while (btn && btn !== document.body) {
@@ -1478,7 +1487,6 @@
         }
     }, false);
 
-    // Возврат из сворачивания: дослать/опросить + обновить ленту
     document.addEventListener('visibilitychange', function() {
         if (document.visibilityState === 'visible') {
             if (eventQueue.length > 0) { resendPending(); }
