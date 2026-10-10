@@ -89,7 +89,6 @@
         .bv-arrow { width: 46px; height: 46px; flex-shrink: 0; background: #333333; color: #ffffff; border: none; border-radius: 8px; font-size: 28px; font-weight: 700; cursor: pointer; }
         .bv-date { flex: 1; text-align: center; font-size: 19px; font-weight: 600; color: #ffffff; }
         .bv-calbtn { width: 46px; height: 46px; flex-shrink: 0; background: #333333; color: #ffffff; border: none; border-radius: 8px; font-size: 24px; cursor: pointer; }
-        /* Мини-календарь */
         .mini-cal { display: none; background: #1e1e1e; border-radius: 12px; padding: 12px; margin-bottom: 12px; }
         .mini-cal.open { display: block; }
         .mc-head { display: flex; align-items: center; margin-bottom: 10px; }
@@ -222,7 +221,6 @@
     </div>
 </div>
 
-<!-- Экран записи -->
 <div id="booking-view">
     <div class="bv-head">
         <button class="bv-today" id="bv-today-btn" style="display: none;" onclick="bookGoToday()">Сегодня</button>
@@ -235,7 +233,6 @@
         <button class="bv-calbtn" onclick="toggleMiniCal()">📅</button>
         <button class="bv-arrow" onclick="bookShiftDay(1)">›</button>
     </div>
-    <!-- Мини-календарь -->
     <div class="mini-cal" id="mini-cal">
         <div class="mc-head">
             <button class="mc-nav" onclick="calShiftMonth(-1)">‹</button>
@@ -247,7 +244,6 @@
     <div id="book-slots"></div>
 </div>
 
-<!-- Форма новой записи -->
 <div class="modal-overlay" id="book-add-modal" style="z-index: 250;">
     <div class="modal-content">
         <h2 style="margin-bottom: 15px;">Новая запись</h2>
@@ -274,7 +270,7 @@
     <option value="Киа (Kia)"></option><option value="Рио (Rio)"></option>
     <option value="Шкода (Skoda)"></option><option value="Октавия (Octavia)"></option><option value="Рапид (Rapid)"></option>
     <option value="Тойота (Toyota)"></option><option value="Камри (Camry)"></option><option value="Королла (Corolla)"></option>
-    <option value="Ниссан (Nissan)"></option><option value="Альмера (Almera)"></option><option value="Кашкай (Qashqai)"></option><option value="Х-Трейл (X-Trail)"></option>
+    <option value="Ниссان (Nissan)"></option><option value="Альмера (Almera)"></option><option value="Кашкай (Qashqai)"></option><option value="Х-Трейл (X-Trail)"></option>
     <option value="Мазда (Mazda)"></option><option value="CX-5 (CX-5)"></option><option value="Мазда 3 (Mazda 3)"></option>
     <option value="Опель (Opel)"></option><option value="Астра (Astra)"></option><option value="Вектра (Vectra)"></option>
     <option value="Пежо (Peugeot)"></option><option value="Партнер (Partner)"></option><option value="Боксер (Boxer)"></option>
@@ -300,7 +296,7 @@
     <option value="Дэу (Daewoo)"></option><option value="Нексия (Nexia)"></option><option value="Матиз (Matiz)"></option>
     <option value="Хайма (Haima)"></option><option value="Лифан (Lifan)"></option><option value="Смайл (Smile)"></option>
     <option value="Грейт Вол (Great Wall)"></option><option value="Динг (Dying)"></option>
-    <option value="Ягуар (Jaguar)"></option><option value="Вольво (Volvo)"></option><option value="Ленд Ровер (Land Rover)"></option>
+    <option value="Ягуار (Jaguar)"></option><option value="Вольво (Volvo)"></option><option value="Ленд Ровер (Land Rover)"></option>
     <option value="Ауди (Audi)"></option><option value="А4 (A4)"></option><option value="Ку-7 (Q7)"></option>
     <option value="БМВ (BMW)"></option><option value="Х5 (X5)"></option>
     <option value="Смарт (Smart)"></option>
@@ -312,13 +308,12 @@
     <option value="Квадроцикл"></option><option value="Снегоход"></option><option value="Мотоцикл"></option>
 </datalist>
 
-<!-- Действия с записью -->
+<!-- Действия с записью: без «Нет клиента» -->
 <div class="modal-overlay" id="book-action-modal" style="z-index: 250;">
     <div class="modal-content">
         <h2 style="margin-bottom: 15px;" id="bam-title"></h2>
         <button class="btn-ba" style="background: #2e7d32;" onclick="doBookStatus(actionBkId, 'done')">Сделано</button>
         <button class="btn-ba" style="background: #ff9800;" onclick="doBookStatus(actionBkId, 'cancelled')">Отмена записи</button>
-        <button class="btn-ba" style="background: #e53935;" onclick="doBookStatus(actionBkId, 'noshow')">Нет клиента</button>
         <button class="btn-ba" style="background: #333333;" onclick="closeActionModal()">Закрыть</button>
     </div>
 </div>
@@ -633,10 +628,9 @@
     var bookCtx = { date: null };
     var addCtx = { start: 11, vtype: 'car' };
     var actionBkId = null;
-    var calMonth = null; // {y, m} отображаемый месяц мини-календаря
+    var calMonth = null;
 
     var WD = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
-    var WDshort = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
     var MG = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
     var MGnom = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 
@@ -670,6 +664,21 @@
         return null;
     }
 
+    // Сколько слотов дня заняты (booked/done). Для точек календаря.
+    function dayBusySlots(ymd) {
+        var list = localSchedule[ymd] || [];
+        var busy = {};
+        for (var i = 0; i < list.length; i++) {
+            var b = list[i];
+            if (b.status === 'booked' || b.status === 'done') {
+                for (var h = b.start; h < b.start + b.hours && h <= 17; h++) busy[h] = true;
+            }
+        }
+        var cnt = 0;
+        for (var hh = 8; hh <= 17; hh++) { if (busy[hh]) cnt++; }
+        return cnt;
+    }
+
     function mergeSchedule(db) {
         var serverSched = db.schedule || {};
         var view = {};
@@ -699,7 +708,7 @@
 
     function openBookingView() {
         bookCtx.date = dateToYmd(new Date());
-        calMonth = { y: new Date().getFullYear(), m: new Date().getMonth() }; // текущий месяц
+        calMonth = { y: new Date().getFullYear(), m: new Date().getMonth() };
         document.getElementById('booking-view').style.display = 'block';
         closeMiniCal();
         renderBookDay();
@@ -741,20 +750,6 @@
         renderMiniCal();
     }
 
-    // Есть ли в дне хотя бы один свободный слот?
-    function dayHasFreeSlot(ymd) {
-        var list = localSchedule[ymd] || [];
-        var busy = {};
-        for (var i = 0; i < list.length; i++) {
-            var b = list[i];
-            if (b.status === 'booked' || b.status === 'done') {
-                for (var h = b.start; h < b.start + b.hours && h <= 17; h++) busy[h] = true;
-            }
-        }
-        for (var hh = 8; hh <= 17; hh++) { if (!busy[hh]) return true; }
-        return false;
-    }
-
     function renderMiniCal() {
         if (!calMonth) return;
         var min = ymdShift(-3);
@@ -766,7 +761,6 @@
         var grid = document.getElementById('mc-grid');
         grid.innerHTML = '';
 
-        // Заголовок дней недели: начинаем с Пн
         var dows = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
         for (var i = 0; i < 7; i++) {
             var dow = document.createElement('div');
@@ -775,10 +769,8 @@
             grid.appendChild(dow);
         }
 
-        // первый день месяца: (getDay()===0 ? 7 : getDay()) — сдвиг для Пн-начала
         var first = new Date(calMonth.y, calMonth.m, 1);
         var firstDow = first.getDay() === 0 ? 7 : first.getDay();
-        // пустые клетки до 1-го
         for (var e = 1; e < firstDow; e++) {
             var empty = document.createElement('div');
             empty.className = 'mc-day out';
@@ -798,11 +790,18 @@
             dayEl.className = cls;
             dayEl.innerText = String(dd);
             if (inRange) {
-                // точка: зелёная = есть свободные слоты, красная = день полон
-                if (localSchedule[ymd] && localSchedule[ymd].length > 0) {
-                    var dot = document.createElement('div');
-                    dot.className = 'mc-dot ' + (dayHasFreeSlot(ymd) ? 'free' : 'full');
-                    dayEl.appendChild(dot);
+                // ПРАВИЛА ТОЧКИ:
+                // 1) только сегодня и будущее (вчера и раньше — без точки)
+                // 2) от ЗАНЯТЫХ слотов, а не от наличия записей в списке:
+                //    всё отменили -> 0 занятых -> нет точки (день полностью свободен)
+                // 3) есть занятые И есть свободные -> зелёная; все 10 заняты -> красная
+                if (ymd >= today) {
+                    var busyCnt = dayBusySlots(ymd);
+                    if (busyCnt > 0) {
+                        var dot = document.createElement('div');
+                        dot.className = 'mc-dot ' + (busyCnt < 10 ? 'free' : 'full');
+                        dayEl.appendChild(dot);
+                    }
                 }
                 (function(ymdClick) {
                     dayEl.onclick = function() {
