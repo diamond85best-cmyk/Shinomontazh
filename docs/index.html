@@ -19,7 +19,7 @@
         body {
             padding-top: 20px;
             padding-top: env(safe-area-inset-top);
-            padding-bottom: 100px; /* место под закреплённую панель */
+            padding-bottom: 100px;
             padding-bottom: calc(100px + env(safe-area-inset-bottom));
         }
         .wrap { max-width: 640px; margin: 0 auto; padding: 0 16px; }
@@ -45,7 +45,7 @@
         .btn { border: none; border-radius: 8px; font-weight: 600; font-size: 16px; padding: 14px; cursor: pointer; }
         .btn-green { background-color: #2e7d32; color: #ffffff; }
 
-        /* Закреплённая панель внизу: кнопка «Запись» всегда на экране */
+        /* Закреплённая панель внизу: кнопка «Запись клиентов» */
         .bottom-bar {
             position: fixed;
             bottom: 0; left: 0; right: 0;
@@ -296,7 +296,9 @@
                     }
                 }
 
-                // 2. Ближайшие 3 свободных слота (с текущего часа сегодня)
+                // 2. Ближайшие 3 свободных слота.
+                //    Уже начавшийся час НЕ предлагаем (в 15:23 слот 15:00 прошёл):
+                //    первый кандидат — следующий целый час.
                 var free = [];
                 var now = new Date();
                 var nowHour = now.getHours();
@@ -310,7 +312,7 @@
                             for (var h = b.start; h < b.start + b.hours; h++) busy[h] = true;
                         }
                     }
-                    var firstH = (dayOffset === 0) ? Math.max(8, nowHour) : 8;
+                    var firstH = (dayOffset === 0) ? Math.min(17, nowHour + 1) : 8;
                     for (var hh = firstH; hh <= 17 && free.length < 3; hh++) {
                         if (!busy[hh]) {
                             free.push(ymdLabel(ymd) + ', ' + (hh < 10 ? '0' : '') + hh + ':00');
