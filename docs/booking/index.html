@@ -34,7 +34,6 @@
         .status-line.warn { color: #ff9800; }
         .status-line.err { color: #e53935; }
 
-        /* Мини-календарь */
         .mini-cal { display: none; background: #1e1e1e; border-radius: 12px; padding: 12px; margin-bottom: 12px; }
         .mini-cal.open { display: block; }
         .mc-head { display: flex; align-items: center; margin-bottom: 10px; }
@@ -86,7 +85,6 @@
 </head>
 <body>
 
-    <!-- Экран блокировки -->
     <div id="lock-screen" class="lock-wrap">
         <div class="lock-card">
             <div class="lock-title">Запись Шиномонтаж</div>
@@ -96,7 +94,6 @@
         </div>
     </div>
 
-    <!-- Приложение -->
     <div id="app" style="display:none">
         <div class="wrap">
             <div class="app-header">
@@ -127,7 +124,6 @@
         </div>
     </div>
 
-    <!-- Модалка: форма записи -->
     <div class="modal-overlay" id="form-modal">
         <div class="modal">
             <div class="modal-title" id="fm-title">Новая запись</div>
@@ -169,7 +165,7 @@
         <option value="Хавал (Haval)"></option><option value="Джолион (Jolion)"></option><option value="Ф-7 (F7)"></option>
         <option value="Чанган (Changan)"></option><option value="Омода (Omoda)"></option><option value="Эксид (Exeed)"></option>
         <option value="Мицубиси (Mitsubishi)"></option><option value="Аутлендер (Outlander)"></option><option value="Паджеро (Pajero)"></option><option value="Лансер (Lancer)"></option>
-        <option value="СангЙонг (SsangYong)"></option><option value="Актион (Actyon)"></option><option value="Кайрон (Korando)"></option>
+        <option value="СангЙонг (SsangYong)"></option><option value="Актиون (Actyon)"></option><option value="Кайрон (Korando)"></option>
         <option value="Сузуки (Suzuki)"></option><option value="Джимни (Jimny)"></option><option value="Витара (Vitara)"></option>
         <option value="Субару (Subaru)"></option><option value="Форестер (Forester)"></option><option value="Импреза (Impreza)"></option>
         <option value="Хонда (Honda)"></option><option value="ЦР-В (CR-V)"></option><option value="Сивик (Civic)"></option>
@@ -192,14 +188,13 @@
         <option value="Квадроцикл"></option><option value="Снегоход"></option><option value="Мотоцикл"></option>
     </datalist>
 
-    <!-- Модалка: действия с записью -->
+    <!-- Действия: без «Нет клиента» -->
     <div class="modal-overlay" id="action-modal">
         <div class="modal">
             <div class="modal-title" id="am-title"></div>
             <button class="btn btn-full" style="background:#ff9800;color:#000;" onclick="editFromAction()">✏ Изменить (форма)</button>
             <button class="btn btn-full" style="background:#2e7d32;" onclick="doStatus('done')">✓ Сделано</button>
             <button class="btn btn-full" style="background:#ff9800;color:#000;" onclick="doStatus('cancelled')">✕ Отмена записи</button>
-            <button class="btn btn-full" style="background:#e53935;" onclick="doStatus('noshow')">! Нет клиента</button>
             <button class="btn btn-full" style="background:#333333;margin-top:10px;" onclick="closeActionModal()">Закрыть</button>
         </div>
     </div>
@@ -496,7 +491,8 @@
         renderMiniCal();
     }
 
-    function dayHasFreeSlot(ymd) {
+    // Занятых слотов в дне (booked/done). Для точек.
+    function dayBusySlots(ymd) {
         var view = buildView();
         var list = view[ymd] || [];
         var busy = {};
@@ -506,8 +502,9 @@
                 for (var h = b.start; h < b.start + b.hours && h <= 17; h++) busy[h] = true;
             }
         }
-        for (var hh = 8; hh <= 17; hh++) { if (!busy[hh]) return true; }
-        return false;
+        var cnt = 0;
+        for (var hh = 8; hh <= 17; hh++) { if (busy[hh]) cnt++; }
+        return cnt;
     }
 
     function renderMiniCal() {
@@ -515,7 +512,6 @@
         var min = ymdLimit(-3);
         var max = ymdLimit(30);
         var today = todayYmd();
-        var view = buildView();
 
         $('mc-title').innerText = MGnom[calMonth.m] + ' ' + calMonth.y;
 
@@ -551,10 +547,15 @@
             dayEl.className = cls;
             dayEl.innerText = String(dd);
             if (inRange) {
-                if (view[ymd] && view[ymd].length > 0) {
-                    var dot = document.createElement('div');
-                    dot.className = 'mc-dot ' + (dayHasFreeSlot(ymd) ? 'free' : 'full');
-                    dayEl.appendChild(dot);
+                // ПРАВИЛА ТОЧКИ: только сегодня/будущее; от ЗАНЯТЫХ слотов
+                // (всё отменили -> нет точки); заняты не все -> зелёная; все 10 -> красная
+                if (ymd >= today) {
+                    var busyCnt = dayBusySlots(ymd);
+                    if (busyCnt > 0) {
+                        var dot = document.createElement('div');
+                        dot.className = 'mc-dot ' + (busyCnt < 10 ? 'free' : 'full');
+                        dayEl.appendChild(dot);
+                    }
                 }
                 (function(ymdClick) {
                     dayEl.onclick = function() {
