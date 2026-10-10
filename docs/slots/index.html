@@ -21,7 +21,7 @@
         /* Часы: мигающее двоеточие = связь есть */
         .clock {
             text-align: center;
-            font-size: 26vh;
+            font-size: 30vh;
             line-height: 1;
             font-weight: 700;
             color: #ffffff;
@@ -47,13 +47,13 @@
         .slots { flex: 1; display: flex; flex-direction: column; justify-content: space-around; overflow: hidden; }
         .slot {
             text-align: center;
-            font-size: 8.5vh;
+            font-size: 11vh;
             line-height: 1.1;
             font-weight: 600;
             color: #e0e0e0;
             white-space: nowrap;
         }
-        .slot em { font-style: normal; font-weight: 400; color: #aaaaaa; margin-right: 1.2vw; font-size: 0.75em; }
+        .slot em { font-style: normal; font-weight: 400; color: #aaaaaa; margin-right: 1.2vw; font-size: 0.7em; }
 
         .updated {
             text-align: center;
@@ -63,9 +63,9 @@
         }
 
         @media (max-width: 700px) {
-            /* Узкий экран (телефон через QR): колонки, поменьше шрифты */
-            .clock { font-size: 20vw; }
-            .slot { font-size: 7vw; }
+            /* Узкий экран (телефон через QR) */
+            .clock { font-size: 24vw; }
+            .slot { font-size: 8.5vw; }
         }
     </style>
 </head>
@@ -79,14 +79,13 @@
 
 <script>
     var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxiqxOD5Fuj8FYLp3OEg5HKTbr1YS2gT7Dxp0BywWnoROYW85rkjD3clJc7dvfaVpJqiw/exec';
-    var SLOTS_COUNT = 7;
+    var SLOTS_COUNT = 5;
     var AUTO_REFRESH_MS = 15000;
     var fetchInFlight = false;
     var lastUpdated = null;
     var lastDb = null;
     var everLoaded = false;
 
-    var WD = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
     var WDcap = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
     var MG = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
 
@@ -147,7 +146,7 @@
             .then(function() { fetchInFlight = false; });
     }
 
-    // ---------- Слоты: формула шефа (выверена тестами) ----------
+    // ---------- Слоты: выверенная формула + ночное правило ----------
     function renderSlots(db) {
         var sched = db.schedule || {};
         var free = [];
@@ -165,8 +164,10 @@
                     for (var h = b.start; h < b.start + b.hours; h++) busy[h] = true;
                 }
             }
-            // Только ещё не начавшиеся слоты: вечером после 18:00 сегодня пусто
-            var firstH = (dayOffset === 0) ? (nowHour >= 18 ? 18 : Math.min(17, nowHour + 1)) : 8;
+            // ФИКС НОЧИ: нерабочее время (вечер после 18:00 ИЛИ ночь до 8:00) —
+            // сегодня кандидатов нет (firstH=18 при hh<=17 = пусто -> завтра с 08:00).
+            // Рабочее время: следующий целый час, начавшийся час не предлагаем.
+            var firstH = (dayOffset === 0) ? ((nowHour >= 18 || nowHour < 8) ? 18 : Math.min(17, nowHour + 1)) : 8;
             for (var hh = firstH; hh <= 17 && free.length < SLOTS_COUNT; hh++) {
                 if (!busy[hh]) {
                     free.push({ label: ymdLabel(ymd), hh: hh });
