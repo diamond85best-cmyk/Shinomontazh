@@ -34,8 +34,10 @@
         .step-panel { display: none; background-color: #1e1e1e; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); margin-bottom: 20px; max-width: 800px; margin-left: auto; margin-right: auto; }
         .step-panel.active { display: block; }
         .step-title { font-size: 26px; font-weight: 600; margin-bottom: 15px; color: #ffffff; border-bottom: 1px solid #2c2c2c; padding-bottom: 8px; }
-        .grid-buttons { display: grid; grid-template-columns: 1fr; gap: 12px; }
-        .btn-select { background-color: #2a2a2a; color: #e0e0e0; border: 1px solid #3a3a3a; padding: 20px; font-size: 24px; font-weight: 500; border-radius: 8px; cursor: pointer; text-align: left; transition: all 0.2s ease; width: 100%; }
+        /* Кнопки шагов: столбик на ВСЕХ устройствах (grid не работает на KitKat,
+           а вертикальный столбик удобнее — решили оставить везде) */
+        .grid-buttons { display: block; }
+        .btn-select { background-color: #2a2a2a; color: #e0e0e0; border: 1px solid #3a3a3a; padding: 20px; font-size: 24px; font-weight: 500; border-radius: 8px; cursor: pointer; text-align: left; transition: all 0.2s ease; width: 100%; margin-bottom: 12px; }
         .btn-select.active { background-color: #4caf50 !important; color: #ffffff !important; border-color: #4caf50 !important; }
         .piece-work-container { margin-top: 15px; border-top: 1px dashed #3a3a3a; padding-top: 15px; }
         .item-row { display: flex; align-items: stretch; background-color: #252525; border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
@@ -62,6 +64,7 @@
         .quick-row { display: flex; gap: 10px; margin-top: 0; }
         .quick-row .btn-nav { padding: 16px; font-size: 22px; }
         .quick-short { flex: 0.6; font-size: 20px !important; padding: 10px !important; }
+        .wheels-flex { display: flex; gap: 10px; }
         .fixed-total-bar { position: fixed; bottom: 0; left: 0; right: 0; background-color: #1a1a1a; border-top: 2px solid #252525; padding: 10px 20px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; justify-content: flex-start; z-index: 100; width: 100%; max-width: 100%; margin: 0 auto; box-shadow: 0 -5px 15px rgba(0,0,0,0.6); }
         .queue-strip { width: 100%; font-size: 14px; color: #aaaaaa; padding: 2px 0 8px 0; border-bottom: 2px solid #252525; line-height: 1.7; }
         .queue-strip .qn { color: #e0e0e0; font-weight: 600; }
@@ -94,8 +97,10 @@
         .mc-head { display: flex; align-items: center; margin-bottom: 10px; }
         .mc-title { flex: 1; text-align: center; color: #ffffff; font-weight: 700; font-size: 17px; text-transform: capitalize; }
         .mc-nav { width: 44px; height: 44px; background: #333333; color: #ffffff; border: none; border-radius: 8px; font-size: 20px; font-weight: 700; cursor: pointer; }
-        .mc-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-        .mc-dow { text-align: center; color: #888888; font-size: 12px; font-weight: 700; padding: 4px 0; }
+        /* Календарь на ТАБЛИЦЕ (KitKat не знает CSS Grid — был столбик);
+           на новых устройствах выглядит идентично grid-версии */
+        .mc-table { width: 100%; border-collapse: separate; border-spacing: 4px; table-layout: fixed; }
+        .mc-dow { color: #888888; font-size: 12px; font-weight: 700; text-align: center; padding: 4px 0; }
         .mc-day { position: relative; text-align: center; padding: 8px 0 12px 0; border-radius: 8px; font-size: 17px; color: #e0e0e0; cursor: pointer; }
         .mc-day.out { color: #555555; cursor: default; }
         .mc-day.today { border: 2px solid #4caf50; }
@@ -113,8 +118,22 @@
         .type-btn { flex: 1; background: #333333; color: #aaaaaa; border: 1px solid #444444; border-radius: 8px; padding: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
         .type-btn.active { background: #2e7d32; color: #ffffff; border-color: #2e7d32; }
         .btn-ba { width: 100%; margin-top: 10px; padding: 16px; font-size: 22px; font-weight: 600; border-radius: 8px; border: none; color: #ffffff; cursor: pointer; }
-        @media (min-width: 600px) { .grid-buttons { grid-template-columns: 1fr 1fr; } .item-mid { padding: 16px 18px 16px 20px; } .btn-select { font-size: 26px; } }
-        @media (min-width: 900px) { .grid-buttons { grid-template-columns: 1fr 1fr 1fr; } .payment-buttons { max-width: 600px; margin-left: auto; margin-right: auto; } .nav-buttons { max-width: 600px; margin-left: auto; margin-right: auto; } .btn-select { font-size: 28px; } }
+        /* KitKat (WebView не знает gap во flex): отступы через margin.
+           На современных устройствах блок игнорируется — там всё как было. */
+        @supports not (gap: 1px) {
+            .top-bar-buttons > * + * { margin-left: 6px; }
+            .quick-row > * + * { margin-left: 10px; }
+            .payment-buttons > * + * { margin-left: 10px; }
+            .nav-buttons > * + * { margin-left: 10px; }
+            .type-toggle > * + * { margin-left: 10px; }
+            .bottom-btns > * + * { margin-left: 8px; }
+            .total-row > * + * { margin-left: 10px; }
+            .bv-head > * + * { margin-left: 10px; }
+            .bv-daynav > * + * { margin-left: 8px; }
+            .wheels-flex > * + * { margin-left: 10px; }
+        }
+        @media (min-width: 600px) { .item-mid { padding: 16px 18px 16px 20px; } .btn-select { font-size: 26px; } }
+        @media (min-width: 900px) { .payment-buttons { max-width: 600px; margin-left: auto; margin-right: auto; } .nav-buttons { max-width: 600px; margin-left: auto; margin-right: auto; } .btn-select { font-size: 28px; } }
     </style>
 </head>
 <body>
@@ -169,7 +188,7 @@
     </div>
     <div id="gazelle-wheels-selector" style="display: none; margin-top: 15px; background: #252525; padding: 12px; border-radius: 8px;">
         <div style="font-size: 14px; margin-bottom: 8px; color: #aaa;">Количество колес для Газели:</div>
-        <div style="display: flex; gap: 10px;">
+        <div class="wheels-flex">
             <button class="btn-select btn-wheels active" id="btn-wh-4" onclick="selectGazelleWheels(4, this)" style="padding: 10px; text-align: center;">4 колеса</button>
             <button class="btn-select btn-wheels" id="btn-wh-6" onclick="selectGazelleWheels(6, this)" style="padding: 10px; text-align: center;">6 колес</button>
         </div>
@@ -239,7 +258,7 @@
             <div class="mc-title" id="mc-title"></div>
             <button class="mc-nav" onclick="calShiftMonth(1)">›</button>
         </div>
-        <div class="mc-grid" id="mc-grid"></div>
+        <table class="mc-table" id="mc-table"></table>
     </div>
     <div id="book-slots"></div>
 </div>
@@ -270,7 +289,7 @@
     <option value="Киа (Kia)"></option><option value="Рио (Rio)"></option>
     <option value="Шкода (Skoda)"></option><option value="Октавия (Octavia)"></option><option value="Рапид (Rapid)"></option>
     <option value="Тойота (Toyota)"></option><option value="Камри (Camry)"></option><option value="Королла (Corolla)"></option>
-    <option value="Ниссان (Nissan)"></option><option value="Альмера (Almera)"></option><option value="Кашкай (Qashqai)"></option><option value="Х-Трейл (X-Trail)"></option>
+    <option value="Ниссан (Nissan)"></option><option value="Альмера (Almera)"></option><option value="Кашкай (Qashqai)"></option><option value="Х-Трейл (X-Trail)"></option>
     <option value="Мазда (Mazda)"></option><option value="CX-5 (CX-5)"></option><option value="Мазда 3 (Mazda 3)"></option>
     <option value="Опель (Opel)"></option><option value="Астра (Astra)"></option><option value="Вектра (Vectra)"></option>
     <option value="Пежо (Peugeot)"></option><option value="Партнер (Partner)"></option><option value="Боксер (Boxer)"></option>
@@ -296,7 +315,7 @@
     <option value="Дэу (Daewoo)"></option><option value="Нексия (Nexia)"></option><option value="Матиз (Matiz)"></option>
     <option value="Хайма (Haima)"></option><option value="Лифан (Lifan)"></option><option value="Смайл (Smile)"></option>
     <option value="Грейт Вол (Great Wall)"></option><option value="Динг (Dying)"></option>
-    <option value="Ягуار (Jaguar)"></option><option value="Вольво (Volvo)"></option><option value="Ленд Ровер (Land Rover)"></option>
+    <option value="Ягуар (Jaguar)"></option><option value="Вольво (Volvo)"></option><option value="Ленд Ровер (Land Rover)"></option>
     <option value="Ауди (Audi)"></option><option value="А4 (A4)"></option><option value="Ку-7 (Q7)"></option>
     <option value="БМВ (BMW)"></option><option value="Х5 (X5)"></option>
     <option value="Смарт (Smart)"></option>
@@ -308,7 +327,6 @@
     <option value="Квадроцикл"></option><option value="Снегоход"></option><option value="Мотоцикл"></option>
 </datalist>
 
-<!-- Действия с записью: без «Нет клиента» -->
 <div class="modal-overlay" id="book-action-modal" style="z-index: 250;">
     <div class="modal-content">
         <h2 style="margin-bottom: 15px;" id="bam-title"></h2>
@@ -664,7 +682,6 @@
         return null;
     }
 
-    // Сколько слотов дня заняты (booked/done). Для точек календаря.
     function dayBusySlots(ymd) {
         var list = localSchedule[ymd] || [];
         var busy = {};
@@ -729,7 +746,7 @@
         if (document.getElementById('mini-cal').classList.contains('open')) renderMiniCal();
     }
 
-    // ===== МИНИ-КАЛЕНДАРЬ =====
+    // ===== МИНИ-КАЛЕНДАРЬ (ТАБЛИЦА: KitKat не знает CSS Grid — столбик) =====
     function toggleMiniCal() {
         var el = document.getElementById('mini-cal');
         if (el.classList.contains('open')) { closeMiniCal(); return; }
@@ -758,60 +775,82 @@
 
         document.getElementById('mc-title').innerText = MGnom[calMonth.m] + ' ' + calMonth.y;
 
-        var grid = document.getElementById('mc-grid');
-        grid.innerHTML = '';
+        var tbl = document.getElementById('mc-table');
+        tbl.innerHTML = '';
 
+        // строка дней недели
         var dows = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+        var htr = document.createElement('tr');
         for (var i = 0; i < 7; i++) {
-            var dow = document.createElement('div');
-            dow.className = 'mc-dow';
-            dow.innerText = dows[i];
-            grid.appendChild(dow);
+            var th = document.createElement('th');
+            th.className = 'mc-dow';
+            th.innerText = dows[i];
+            htr.appendChild(th);
         }
+        tbl.appendChild(htr);
 
         var first = new Date(calMonth.y, calMonth.m, 1);
         var firstDow = first.getDay() === 0 ? 7 : first.getDay();
+        var daysInMonth = new Date(calMonth.y, calMonth.m + 1, 0).getDate();
+
+        var tr = document.createElement('tr');
         for (var e = 1; e < firstDow; e++) {
-            var empty = document.createElement('div');
-            empty.className = 'mc-day out';
-            empty.innerHTML = '&nbsp;';
-            grid.appendChild(empty);
+            var etd = document.createElement('td');
+            etd.className = 'mc-day out';
+            etd.innerHTML = '&nbsp;';
+            tr.appendChild(etd);
         }
 
-        var daysInMonth = new Date(calMonth.y, calMonth.m + 1, 0).getDate();
         for (var dd = 1; dd <= daysInMonth; dd++) {
-            var dayEl = document.createElement('div');
             var ymd = calMonth.y + '-' + pad2(calMonth.m + 1) + '-' + pad2(dd);
             var inRange = (ymd >= min && ymd <= max);
+            var td = document.createElement('td');
             var cls = 'mc-day';
-            if (!inRange) { cls += ' out'; }
-            if (ymd === today) { cls += ' today'; }
-            if (ymd === bookCtx.date) { cls += ' sel'; }
-            dayEl.className = cls;
-            dayEl.innerText = String(dd);
+            if (!inRange) cls += ' out';
+            if (ymd === today) cls += ' today';
+            if (ymd === bookCtx.date) cls += ' sel';
+            td.className = cls;
+
+            var num = document.createElement('span');
+            num.innerText = String(dd);
+            td.appendChild(num);
+
             if (inRange) {
-                // ПРАВИЛА ТОЧКИ:
-                // 1) только сегодня и будущее (вчера и раньше — без точки)
-                // 2) от ЗАНЯТЫХ слотов, а не от наличия записей в списке:
-                //    всё отменили -> 0 занятых -> нет точки (день полностью свободен)
-                // 3) есть занятые И есть свободные -> зелёная; все 10 заняты -> красная
+                // точки: только сегодня/будущее; от ЗАНЯТЫХ слотов (booked/done);
+                // всё отменили -> нет точки; заняты не все -> зелёная; все 10 -> красная
                 if (ymd >= today) {
                     var busyCnt = dayBusySlots(ymd);
                     if (busyCnt > 0) {
-                        var dot = document.createElement('div');
+                        var dot = document.createElement('span');
                         dot.className = 'mc-dot ' + (busyCnt < 10 ? 'free' : 'full');
-                        dayEl.appendChild(dot);
+                        td.appendChild(dot);
                     }
                 }
                 (function(ymdClick) {
-                    dayEl.onclick = function() {
+                    td.onclick = function() {
                         bookCtx.date = ymdClick;
                         closeMiniCal();
                         renderBookDay();
                     };
                 })(ymd);
             }
-            grid.appendChild(dayEl);
+
+            tr.appendChild(td);
+            if (tr.children.length === 7) {
+                tbl.appendChild(tr);
+                tr = document.createElement('tr');
+            }
+        }
+
+        // добить последнюю строку пустыми клетками
+        if (tr.children.length > 0) {
+            while (tr.children.length < 7) {
+                var ptd = document.createElement('td');
+                ptd.className = 'mc-day out';
+                ptd.innerHTML = '&nbsp;';
+                tr.appendChild(ptd);
+            }
+            tbl.appendChild(tr);
         }
     }
     // ===== КОНЕЦ МИНИ-КАЛЕНДАРЯ =====
