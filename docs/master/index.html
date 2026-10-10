@@ -20,12 +20,11 @@
         .shift-info { display: flex; flex-direction: column; }
         .shift-title { font-size: 10px; color: #aaaaaa; text-transform: uppercase; letter-spacing: 1px; }
         .shift-amount { font-size: 16px; font-weight: 700; color: #ffffff; }
-        .top-bar-buttons { display: flex; gap: 5px; }
-        .btn-book { background-color: #00838f; color: #ffffff; border: none; padding: 9px 10px; font-size: 11px; font-weight: 600; border-radius: 6px; cursor: pointer; }
-        .btn-history { background-color: #5c6bc0; color: #ffffff; border: none; padding: 9px 10px; font-size: 11px; font-weight: 600; border-radius: 6px; cursor: pointer; }
+        .top-bar-buttons { display: flex; gap: 6px; }
+        .btn-history { background-color: #5c6bc0; color: #ffffff; border: none; padding: 10px 12px; font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; }
         .btn-history.unsent { background-color: #e53935; }
-        .btn-salary { background-color: #ff9800; color: #ffffff; border: none; padding: 9px 10px; font-size: 11px; font-weight: 600; border-radius: 6px; cursor: pointer; display: none; }
-        .btn-shift { background-color: #e53935; color: #ffffff; border: none; padding: 9px 10px; font-size: 11px; font-weight: 600; border-radius: 6px; cursor: pointer; }
+        .btn-salary { background-color: #ff9800; color: #ffffff; border: none; padding: 10px 12px; font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; display: none; }
+        .btn-shift { background-color: #e53935; color: #ffffff; border: none; padding: 10px 12px; font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; }
         .btn-shift.closed { background-color: #2e7d32; }
         .step-indicator { display: flex; justify-content: space-between; margin-bottom: 25px; position: relative; max-width: 600px; margin-left: auto; margin-right: auto; }
         .step-indicator::before { content: ''; position: absolute; top: 12px; left: 10px; right: 10px; height: 2px; background-color: #2c2c2c; z-index: 1; }
@@ -60,15 +59,23 @@
         .btn-transfer { background-color: #1565c0; flex: 1; }
         .btn-split { background-color: #ff9800; flex: 0.6; font-size: 22px; padding: 10px; }
         .btn-pay:disabled { background-color: #555555 !important; color: #999999; cursor: not-allowed; }
+        /* Быстрые услуги: ряд как у кнопок оплаты (1 : 0.6 : 1) */
+        .quick-row { display: flex; gap: 10px; margin-top: 0; }
+        .quick-row .btn-nav { padding: 16px; font-size: 22px; }
+        .quick-short { flex: 0.6; font-size: 20px !important; padding: 10px !important; }
+        /* Нижняя панель: лента очереди + ряд [Итого слева | Статус Запись Сброс справа] */
         .fixed-total-bar { position: fixed; bottom: 0; left: 0; right: 0; background-color: #1a1a1a; border-top: 2px solid #252525; padding: 10px 20px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; justify-content: flex-start; z-index: 100; width: 100%; max-width: 100%; margin: 0 auto; box-shadow: 0 -5px 15px rgba(0,0,0,0.6); }
         .queue-strip { width: 100%; font-size: 14px; color: #aaaaaa; padding: 2px 0 8px 0; border-bottom: 2px solid #252525; line-height: 1.7; }
         .queue-strip .qn { color: #e0e0e0; font-weight: 600; }
-        .queue-strip .qx { color: #e53935; font-weight: 700; padding-left: 8px; cursor: pointer; }
-        .total-row { display: flex; justify-content: space-between; align-items: center; width: 100%; padding-top: 8px; }
-        .total-info { display: flex; flex-direction: column; }
+        .total-row { display: flex; justify-content: space-between; align-items: center; width: 100%; padding-top: 8px; gap: 10px; }
+        .total-info { display: flex; flex-direction: column; flex: 1; margin-left: 10px; }
         .total-title { font-size: 12px; color: #aaaaaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
         .total-amount { font-size: 28px; font-weight: 700; color: #ffffff; }
-        .btn-reset { background-color: #e53935; color: #ffffff; border: none; padding: 14px 28px; font-size: 16px; font-weight: 600; border-radius: 8px; cursor: pointer; }
+        .bottom-btns { display: flex; gap: 8px; flex-shrink: 0; }
+        .btn-status-queue { background-color: #ff9800; color: #ffffff; border: none; padding: 14px 20px; font-size: 16px; font-weight: 600; border-radius: 8px; cursor: pointer; }
+        .btn-status-queue.hidden { display: none; }
+        .btn-book-bottom { background-color: #00838f; color: #ffffff; border: none; padding: 14px 20px; font-size: 16px; font-weight: 600; border-radius: 8px; cursor: pointer; }
+        .btn-reset { background-color: #e53935; color: #ffffff; border: none; padding: 14px 20px; font-size: 16px; font-weight: 600; border-radius: 8px; cursor: pointer; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.85); z-index: 200; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
         .modal-content { background-color: #1e1e1e; border-radius: 12px; padding: 25px; max-width: 500px; width: 100%; text-align: center; max-height: calc(100vh - 40px); display: flex; flex-direction: column; }
         .report-textbox { width: 100%; flex: 1; min-height: 150px; height: 350px; background-color: #121212; color: #e0e0e0; border: 1px solid #333; border-radius: 8px; padding: 15px; font-size: 15px; margin-bottom: 15px; text-align: left; white-space: pre-wrap; overflow-y: auto; -webkit-overflow-scrolling: touch; }
@@ -89,7 +96,6 @@
         .slot-free .slot-mid { color: #4caf50; font-weight: 600; }
         .slot-done { opacity: 0.55; }
         .slot-cont .slot-mid { color: #888888; font-size: 16px; }
-        .slot-x { width: 64px; flex-shrink: 0; background: #e53935; color: #ffffff; border: none; font-size: 20px; font-weight: 700; cursor: pointer; }
         .type-toggle { display: flex; gap: 10px; margin-bottom: 6px; }
         .type-btn { flex: 1; background: #333333; color: #aaaaaa; border: 1px solid #444444; border-radius: 8px; padding: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
         .type-btn.active { background: #2e7d32; color: #ffffff; border-color: #2e7d32; }
@@ -105,7 +111,6 @@
         <div class="shift-amount" id="shift-revenue">0 руб</div>
     </div>
     <div class="top-bar-buttons">
-        <button class="btn-book" onclick="openBookingView()">Запись</button>
         <button class="btn-history" id="btn-history" onclick="showHistory()">Журнал</button>
         <button class="btn-salary" id="btn-salary" onclick="showCurrentSalary()">Зарплата</button>
         <button class="btn-shift closed" id="btn-shift" onclick="showOpenShiftModal()">Открыть</button>
@@ -127,12 +132,10 @@
     </div>
     <div style="margin-top: 15px; border-top: 1px dashed #3a3a3a; padding-top: 15px;">
         <div style="font-size: 14px; color: #aaa; margin-bottom: 8px;">Быстрые услуги:</div>
-        <div class="nav-buttons" style="margin-top: 0;">
+        <div class="quick-row">
             <button class="btn-nav btn-next" style="background: #00838f;" onclick="selectQuickService('Жгут', 200)">Жгут (200)</button>
+            <button class="btn-nav btn-back quick-short" style="background: #455a64;" onclick="showCustomModal()">Другая услуга</button>
             <button class="btn-nav btn-next" style="background: #00838f;" onclick="selectQuickService('Жгут со снятием', 400)">Жгут со снятием (400)</button>
-        </div>
-        <div style="margin-top: 10px;">
-            <button class="btn-nav btn-back" style="background: #455a64; width: 100%;" onclick="showCustomModal()">Другая услуга</button>
         </div>
     </div>
     <div id="quick-service-pay" style="display: none; margin-top: 20px; border-top: 1px solid #2c2c2c; padding-top: 15px;">
@@ -193,15 +196,20 @@
         <button class="btn-nav btn-back" onclick="changeStep(2)">Назад</button>
     </div>
 </div>
+<!-- Нижняя панель: лента + ряд [Итого слева | Статус(по факту) Запись Сброс справа] -->
 <div class="fixed-total-bar">
     <div class="queue-strip" id="queue-strip">Сейчас: —<br>Далее: —</div>
     <div class="total-row">
         <div class="total-info"><div class="total-title">Итого к оплате</div><div class="total-amount" id="total-price">0 руб</div></div>
-        <button class="btn-reset" onclick="resetAll()">Сброс</button>
+        <div class="bottom-btns">
+            <button class="btn-status-queue hidden" id="btn-status-queue" onclick="showCurrentBookActions()">Статус</button>
+            <button class="btn-book-bottom" onclick="openBookingView()">Запись</button>
+            <button class="btn-reset" onclick="resetAll()">Сброс</button>
+        </div>
     </div>
 </div>
 
-<!-- Экран записи: «Сегодня» — в шапке, слева от ✕ (появляется при листании дней) -->
+<!-- Экран записи -->
 <div id="booking-view">
     <div class="bv-head">
         <button class="bv-today" id="bv-today-btn" style="display: none;" onclick="bookGoToday()">Сегодня</button>
@@ -454,8 +462,6 @@
             iosResendPending();
         }
     }
-    // Таймер 60 сек: очередь непуста — досылка; пуста — опрос сервера (правки админа).
-    // Только при открытом экране.
     function ensureSyncTimer() {
         if (syncTimer) return;
         syncTimer = setInterval(function() {
@@ -668,7 +674,6 @@
 
     function renderBookDay() {
         document.getElementById('bv-date').innerText = ymdLabel(bookCtx.date);
-        // «Сегодня» — в шапке; видна только когда листаем не сегодняшний день
         var todayBtn = document.getElementById('bv-today-btn');
         if (todayBtn) {
             todayBtn.style.display =
@@ -699,7 +704,7 @@
                     row.innerHTML = '<div class="slot-time">' + hh + ':00</div><div class="slot-mid">✓ сделано: ' + esc(txt) + '</div>';
                 } else {
                     row.className = 'slot-row';
-                    row.innerHTML = '<div class="slot-time">' + hh + ':00</div><div class="slot-mid">' + esc(txt) + '</div><button class="slot-x">✕</button>';
+                    row.innerHTML = '<div class="slot-time">' + hh + ':00</div><div class="slot-mid">' + esc(txt) + '</div><button class="slot-x" style="width:64px;flex-shrink:0;background:#e53935;color:#fff;border:none;font-size:20px;font-weight:700;cursor:pointer;">✕</button>';
                     row.querySelector('.slot-x').onclick = (function(bid) { return function() { openActionModal(bid); }; })(b.id);
                 }
             } else {
@@ -784,6 +789,30 @@
         resendPending();
     }
 
+    // «Статус»: модалка действий для ТЕКУЩЕЙ записи («Сейчас»)
+    function showCurrentBookActions() {
+        var cur = getCurrentBook();
+        if (!cur) {
+            alert('Сейчас нет записей (по расписанию).');
+            return;
+        }
+        openActionModal(cur.id);
+    }
+
+    function getCurrentBook() {
+        var today = dateToYmd(new Date());
+        var list = localSchedule[today] || [];
+        var now = new Date();
+        var nowH = now.getHours() + now.getMinutes() / 60;
+        for (var i = 0; i < list.length; i++) {
+            var b = list[i];
+            if (b.status !== 'booked' && b.status !== 'done') continue;
+            if (b.start <= nowH && nowH < b.start + b.hours) return b;
+        }
+        return null;
+    }
+
+    // Лента «Сейчас / Далее» + видимость кнопки «Статус»
     function renderQueueStrip() {
         var today = dateToYmd(new Date());
         var list = localSchedule[today] || [];
@@ -806,11 +835,18 @@
             if (bk) {
                 var name = ((bk.brand || '—') + ' ' + (bk.number || '—')).trim();
                 var mark = (bk.status === 'done') ? '✓ ' : '';
-                return label + ': <span class="qn">' + esc(mark + name) + '</span><span class="qx" onclick="openActionModal(\'' + bk.id + '\')">[x]</span>';
+                return label + ': <span class="qn">' + esc(mark + name) + '</span>';
             }
             return label + ': <span class="qn">—</span>';
         }
         document.getElementById('queue-strip').innerHTML = line('Сейчас', cur) + '<br>' + line('Далее', next);
+
+        // Кнопка «Статус» — только при активной записи на текущий час
+        var stBtn = document.getElementById('btn-status-queue');
+        if (stBtn) {
+            if (cur) { stBtn.classList.remove('hidden'); }
+            else { stBtn.classList.add('hidden'); }
+        }
     }
     // ===== КОНЕЦ ЗАПИСИ =====
 
