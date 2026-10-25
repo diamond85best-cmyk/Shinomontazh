@@ -121,11 +121,11 @@
             <div class="modal-title" id="pay-title"></div>
             <input type="number" id="pay-amount" class="pay-input" placeholder="Сумма (руб)">
             <div id="pay-extra"></div>
-            <div class="type-toggle">
+            <div class="type-toggle" id="pay-toggle">
                 <button id="type-cash" class="type-btn" onclick="setPayType('cash')">Наличные</button>
                 <button id="type-transfer" class="type-btn" onclick="setPayType('transfer')">Перевод</button>
             </div>
-            <div class="modal-btns">
+            <div class="modal-btns" id="pay-btns">
                 <button class="btn btn-grey" onclick="closePayModal()">Отмена</button>
                 <button class="btn btn-green" onclick="confirmPayModal()">Сохранить</button>
             </div>
@@ -149,7 +149,7 @@
 <script>
     var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxiqxOD5Fuj8FYLp3OEg5HKTbr1YS2gT7Dxp0BywWnoROYW85rkjD3clJc7dvfaVpJqiw/exec';
     var PASS_KEY = 'shino_admin_pass';
-    var APP_VER = 'v2.2';
+    var APP_VER = 'v2.3';
     var NEED_SERVER_VER = 13;
 
     var pass = '';
@@ -824,8 +824,8 @@
         $('pay-extra').innerHTML = '';
         $('pay-title').style.display = '';
         $('pay-amount').style.display = '';
-        document.querySelector('#pay-modal .type-toggle').style.display = '';
-        document.querySelector('#pay-modal .modal-btns').style.display = '';
+        $('pay-toggle').style.display = '';
+        $('pay-btns').style.display = '';
     }
 
     function showConfirm(text, action) {
@@ -876,8 +876,8 @@
             '</div>';
         $('pay-title').style.display = 'none';
         $('pay-amount').style.display = 'none';
-        document.querySelector('#pay-modal .type-toggle').style.display = 'none';
-        document.querySelector('#pay-modal .modal-btns').style.display = 'none';
+        $('pay-toggle').style.display = 'none';
+        $('pay-btns').style.display = 'none';
         $('pay-modal').classList.add('open');
     }
 
@@ -915,8 +915,8 @@
             '</div>';
         $('pay-title').style.display = 'none';
         $('pay-amount').style.display = 'none';
-        document.querySelector('#pay-modal .type-toggle').style.display = 'none';
-        document.querySelector('#pay-modal .modal-btns').style.display = 'none';
+        $('pay-toggle').style.display = 'none';
+        $('pay-btns').style.display = 'none';
         $('pay-modal').classList.add('open');
     }
 
@@ -943,8 +943,8 @@
             '</div>';
         $('pay-title').style.display = 'none';
         $('pay-amount').style.display = 'none';
-        document.querySelector('#pay-modal .type-toggle').style.display = 'none';
-        document.querySelector('#pay-modal .modal-btns').style.display = 'none';
+        $('pay-toggle').style.display = 'none';
+        $('pay-btns').style.display = 'none';
         $('pay-modal').classList.add('open');
     }
 
@@ -974,8 +974,8 @@
             '</div>';
         $('pay-title').style.display = 'none';
         $('pay-amount').style.display = 'none';
-        document.querySelector('#pay-modal .type-toggle').style.display = 'none';
-        document.querySelector('#pay-modal .modal-btns').style.display = 'none';
+        $('pay-toggle').style.display = 'none';
+        $('pay-btns').style.display = 'none';
         $('pay-modal').classList.add('open');
     }
 
@@ -1002,8 +1002,8 @@
             '</div>';
         $('pay-title').style.display = 'none';
         $('pay-amount').style.display = 'none';
-        document.querySelector('#pay-modal .type-toggle').style.display = 'none';
-        document.querySelector('#pay-modal .modal-btns').style.display = 'none';
+        $('pay-toggle').style.display = 'none';
+        $('pay-btns').style.display = 'none';
         $('pay-modal').classList.add('open');
     }
 
@@ -1154,8 +1154,8 @@
             '</div>';
         $('pay-title').style.display = 'none';
         $('pay-amount').style.display = 'none';
-        document.querySelector('#pay-modal .type-toggle').style.display = 'none';
-        document.querySelector('#pay-modal .modal-btns').style.display = 'none';
+        $('pay-toggle').style.display = 'none';
+        $('pay-btns').style.display = 'none';
         $('pay-modal').classList.add('open');
     }
 
@@ -1197,8 +1197,8 @@
             '<button class="btn btn-full" style="background:#333333;margin:8px 0 0 0;" onclick="closePayModal()">Закрыть</button>';
         $('pay-title').style.display = 'none';
         $('pay-amount').style.display = 'none';
-        document.querySelector('#pay-modal .type-toggle').style.display = 'none';
-        document.querySelector('#pay-modal .modal-btns').style.display = 'none';
+        $('pay-toggle').style.display = 'none';
+        $('pay-btns').style.display = 'none';
         $('pay-modal').classList.add('open');
     }
 
