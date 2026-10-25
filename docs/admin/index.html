@@ -58,7 +58,8 @@
         .type-btn.active { background-color: #2e7d32; color: #ffffff; border-color: #2e7d32; }
         .modal-btns { display: flex; gap: 10px; }
         .modal-btns .btn { flex: 1; }
-        .confirm-text { font-size: 15px; color: #cccccc; margin-bottom: 16px; text-align: center; line-height: 1.5; }
+
+        .confirm-text { font-size: 15px; color: #cccccc; margin-bottom: 16px; text-align: center; line-height: 1.5; white-space: pre-line; }
 
         .toast { position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%) translateY(20px); background-color: #333333; color: #ffffff; padding: 12px 20px; border-radius: 10px; font-size: 15px; opacity: 0; pointer-events: none; transition: opacity 0.25s, transform 0.25s; z-index: 200; max-width: 85%; text-align: center; }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -67,6 +68,35 @@
         .lock-card { width: 100%; max-width: 360px; }
         .lock-title { font-size: 20px; font-weight: 700; color: #ffffff; text-align: center; margin-bottom: 16px; }
         .lock-err { color: #e53935; font-size: 14px; text-align: center; margin-top: 10px; min-height: 16px; }
+
+        /* === v2: смена, сверка, бейджи === */
+        .badge { display: inline-block; padding: 3px 9px; border-radius: 6px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+        .badge-open { background-color: #1b5e20; color: #81c784; }
+        .badge-closed { background-color: #263238; color: #90a4ae; }
+        .badge-warn { background-color: #4e342e; color: #ffb74d; border: 1px solid #bf6b1f; }
+        .badge-ok { background-color: #1b5e20; color: #a5d6a7; }
+
+        .shift-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
+        .shift-title { font-size: 15px; font-weight: 700; color: #ffffff; }
+        .shift-sub { font-size: 12px; color: #999999; margin-bottom: 6px; }
+
+        .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }
+        .chip { background-color: #263238; color: #b0bec5; border-radius: 6px; padding: 3px 9px; font-size: 12px; white-space: nowrap; }
+        .chip b { color: #ffffff; }
+        .chip-pos { background-color: #1b5e20; color: #a5d6a7; }
+        .chip-neg { background-color: #7f1d1d; color: #ef9a9a; }
+
+        .src-tag { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 4px; margin-right: 6px; font-weight: 700; vertical-align: middle; }
+        .src-m { background-color: #0d47a1; color: #90caf9; }
+        .src-a { background-color: #4a148c; color: #ce93d8; }
+        .late-tag { color: #ffb74d; font-size: 12px; margin-right: 6px; }
+
+        details { margin: 6px 0; }
+        summary { cursor: pointer; color: #5c6bc0; font-size: 14px; font-weight: 700; padding: 6px 0; user-select: none; -webkit-user-select: none; }
+        .recon-box { background-color: #191919; border: 1px solid #333333; border-radius: 8px; padding: 10px 12px; margin: 6px 0; }
+        .recon-line { font-size: 13px; color: #cccccc; margin: 5px 0; line-height: 1.5; }
+        .recon-title { font-size: 13px; font-weight: 700; color: #ffb74d; margin: 10px 0 4px; }
+        .dupe-warn { color: #ffb74d; font-size: 13px; margin: 4px 0; }
     </style>
 </head>
 <body>
@@ -81,23 +111,10 @@
         </div>
     </div>
 
-    <!-- Приложение -->
-    <div id="app" style="display:none">
-        <div class="wrap">
-            <div class="app-header">
-                <div class="app-title">Админ Шиномонтаж</div>
-                <div class="header-btns">
-                    <button class="btn-mini" style="background-color:#00838f" onclick="openBookView()">Запись</button>
-                    <button class="btn-mini" onclick="refreshNow()">Обновить</button>
-                    <button class="btn-mini btn-mini-red" onclick="lockApp()">🔒</button>
-                </div>
-            </div>
-            <div class="status-line" id="status-line"></div>
-            <div id="content"></div>
-        </div>
-    </div>
+    <!-- Приложение (наполняется из JS) -->
+    <div id="app" style="display:none"></div>
 
-    <!-- Модалка оплат/записи: СЛОТ pay-slot + родные элементы оплат -->
+    <!-- Модалка оплат/форм: СЛОТ pay-slot + родные элементы оплат -->
     <div class="modal-overlay" id="pay-modal">
         <div class="modal">
             <div id="pay-slot"></div>
@@ -114,7 +131,7 @@
         </div>
     </div>
 
-    <!-- Модалка: подтверждение удаления -->
+    <!-- Модалка: подтверждение -->
     <div class="modal-overlay" id="confirm-modal">
         <div class="modal">
             <div class="modal-title">Подтверждение</div>
@@ -131,24 +148,47 @@
 <script>
     var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxiqxOD5Fuj8FYLp3OEg5HKTbr1YS2gT7Dxp0BywWnoROYW85rkjD3clJc7dvfaVpJqiw/exec';
     var PASS_KEY = 'shino_admin_pass';
+    var APP_VER = 'v2.1';
+    var NEED_SERVER_VER = 12;
+
     var pass = '';
     var fetchInFlight = false;
     var lastUpdated = null;
+    var lastDb = null;
     var payCtx = { onSave: null };
     var payType = 'cash';
     var confirmAction = null;
     var toastTimer = null;
+    var pendingRender = false;
+    var serverOffset = 0;
+    var serverVer = null;
 
     function $(id) { return document.getElementById(id); }
 
+    function pad2(n) { return (n < 10 ? '0' : '') + n; }
     function fmtTime(ms) {
         if (!ms) return '--:--';
         var d = new Date(ms);
-        var h = d.getHours(), m = d.getMinutes();
-        if (h < 10) h = '0' + h;
-        if (m < 10) m = '0' + m;
-        return h + ':' + m;
+        return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
     }
+    function fmtDay(ms) {
+        if (!ms) return '--.--';
+        var d = new Date(ms);
+        return d.getDate() + '.' + pad2(d.getMonth() + 1);
+    }
+    function fmtDT(ms) {
+        return fmtDay(ms) + ', ' + fmtTime(ms);
+    }
+    function fmtRub(n) {
+        var v = Math.round(Number(n) || 0);
+        var s = String(Math.abs(v)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+        return (v < 0 ? '-' : '') + s + ' руб';
+    }
+    function escB(s) {
+        return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+    function serverNow() { return Date.now() + serverOffset; }
+    function who(by) { return by === 'admin' ? 'админ' : 'мастер'; }
 
     function toast(msg) {
         var t = $('toast');
@@ -160,8 +200,16 @@
 
     function setStatus(text, isErr) {
         var el = $('status-line');
+        if (!el) return;
         el.textContent = text;
         el.className = 'status-line' + (isErr ? ' err' : '');
+    }
+    function statusText(base) {
+        return base + (serverVer ? ' · сервер v' + serverVer : '') + ' · админ ' + APP_VER;
+    }
+
+    function modalOpen() {
+        return !!document.querySelector('.modal-overlay.open');
     }
 
     // ---------- Блокировка ----------
@@ -176,6 +224,8 @@
     function enterApp() {
         $('lock-screen').style.display = 'none';
         $('app').style.display = 'block';
+        renderMainShell();
+        checkServer();
         refreshNow();
     }
 
@@ -209,7 +259,27 @@
             .catch(function() { setLockError('Нет связи с сервером'); });
     }
 
+    // Обновление данных: при входе, после каждого действия и по кнопке «Обновить».
+    // Автообновление админу не нужно — 30-сек цикл это функция мастера.
+
     // ---------- Сеть ----------
+
+    function checkServer() {
+        fetch(SCRIPT_URL + '?mode=check_server', { method: 'GET', cache: 'no-store' })
+            .then(function(r) { return r.json(); })
+            .then(function(j) {
+                if (j && j.version) {
+                    serverVer = j.version;
+                    serverOffset = (j.serverTime || Date.now()) - Date.now();
+                } else {
+                    serverVer = null;
+                }
+            })
+            .catch(function() { serverVer = null; })
+            .then(function() {
+                if (lastUpdated && $('status-line')) setStatus(statusText('Обновлено: ' + lastUpdated.toLocaleTimeString('ru-RU')));
+            });
+    }
 
     function refreshNow() {
         if (fetchInFlight) return;
@@ -219,9 +289,14 @@
             .then(function(db) {
                 lastDb = db;
                 lastUpdated = new Date();
-                setStatus('Обновлено: ' + lastUpdated.toLocaleTimeString('ru-RU'));
-                if (document.getElementById('book-slots')) { renderBookDay(); }
-                else { render(db); }
+                setStatus(statusText('Обновлено: ' + lastUpdated.toLocaleTimeString('ru-RU')));
+                if (document.getElementById('book-slots')) {
+                    renderBookDay();
+                } else if (modalOpen()) {
+                    pendingRender = true; // не дёргаем DOM под пальцами админа
+                } else {
+                    render(db);
+                }
             })
             .catch(function() {
                 setStatus('Нет связи с сервером' + (lastUpdated ? ' (данные на ' + lastUpdated.toLocaleTimeString('ru-RU') + ')' : ''), true);
@@ -241,17 +316,30 @@
                 text = (text || '').trim();
                 if (text === 'OK') { toast(successMsg); refreshNow(); }
                 else if (text === 'NOT_FOUND') { toast('Не найдено на сервере — данные обновлены, повторите'); refreshNow(); }
+                else if (text === 'ALREADY_OPEN') { toast('Смена уже открыта'); refreshNow(); }
+                else if (text === 'NOT_OPEN') { toast('Смена не открыта'); refreshNow(); }
                 else if (text.indexOf('авториза') !== -1) { toast('Неверный пароль'); lockApp(); }
                 else { toast('Ошибка: ' + text); }
             })
             .catch(function() { toast('Ошибка сети'); });
     }
 
-    function getToServer(url, successMsg) {
-        fetch(url, { method: 'GET', cache: 'no-store' })
-            .then(function(r) { if (!r.ok) throw new Error('http'); return r.text(); })
-            .then(function() { toast(successMsg); refreshNow(); })
-            .catch(function() { toast('Ошибка сети'); });
+    // ---------- Каркасы экранов ----------
+
+    function renderMainShell() {
+        $('app').innerHTML =
+            '<div class="wrap">' +
+            '<div class="app-header">' +
+            '<div class="app-title">Админ Шиномонтаж</div>' +
+            '<div class="header-btns">' +
+            '<button class="btn-mini" style="background-color:#00838f" onclick="openBookView()">Запись</button>' +
+            '<button class="btn-mini" onclick="refreshNow()">Обновить</button>' +
+            '<button class="btn-mini btn-mini-red" onclick="lockApp()">🔒</button>' +
+            '</div></div>' +
+            '<div class="status-line" id="status-line"></div>' +
+            '<div id="content"></div>' +
+            '</div>';
+        if (lastDb) render(lastDb);
     }
 
     // ---------- Главный экран ----------
@@ -263,37 +351,53 @@
         return e;
     }
 
+    function mkChip(label, val, cls) {
+        var c = el('span', 'chip' + (cls ? ' ' + cls : ''));
+        c.appendChild(document.createTextNode(label + ': '));
+        var b = el('b', null, val);
+        c.appendChild(b);
+        return c;
+    }
+    function mkDelta(label, v) {
+        if (!v) return null;
+        var c = el('span', 'chip ' + (v > 0 ? 'chip-pos' : 'chip-neg'));
+        c.appendChild(document.createTextNode(label + ' ' + (v > 0 ? '+' : '-') + fmtRub(Math.abs(v)).replace(' руб', '')));
+        return c;
+    }
+    function mkSrcTag(t) {
+        var s = el('span', 'src-tag ' + (t.src === 'a' ? 'src-a' : 'src-m'), t.src === 'a' ? 'А' : 'М');
+        return s;
+    }
+
     function txRow(parent, t, shiftId) {
         var row = el('div', 'tx-row');
+        var txt = el('div', 'tx-text');
+        txt.appendChild(mkSrcTag(t));
+        if (t.late) txt.appendChild(el('span', 'late-tag', '⏱ поздняя'));
         var type = t.type === 'cash' ? 'Нал' : 'Безнал';
-        row.appendChild(el('div', 'tx-text', fmtTime(t.time) + ' - ' + type + ' - ' + t.amount + ' руб'));
+        txt.appendChild(document.createTextNode(fmtTime(t.time) + ' · ' + type + ' · ' + fmtRub(t.amount)));
+        row.appendChild(txt);
 
         var bEdit = el('button', 'btn-sm btn-sm-edit', 'Изм');
         bEdit.onclick = function() {
-            showPayDialog('Изменить оплату', t.amount, t.type, function(amount, newType) {
-                var m = Math.round(amount * 0.4);
-                var b = amount - m;
-                var params;
+            showPayDialog(shiftId == null ? 'Изменить оплату' : 'Изменить оплату (закрытая смена)', t.amount, t.type, function(amount, newType) {
                 if (shiftId == null) {
-                    params = { action: 'edit_transaction', id: String(t.id), type: newType, amount: amount, masterShare: m, bossShare: b };
+                    postToServer({ action: 'edit_transaction', id: String(t.id), type: newType, amount: amount }, 'Изменения сохранены');
                 } else {
-                    params = { action: 'edit_journal_transaction', shiftId: String(shiftId), transId: String(t.id), type: newType, amount: amount, masterShare: m, bossShare: b };
+                    postToServer({ action: 'edit_journal_transaction', shiftId: String(shiftId), transId: String(t.id), type: newType, amount: amount }, 'Изменения сохранены');
                 }
-                postToServer(params, 'Изменения сохранены');
             });
         };
         row.appendChild(bEdit);
 
         var bDel = el('button', 'btn-sm btn-sm-del', 'X');
         bDel.onclick = function() {
-            showConfirm('Удалить оплату безвозвратно?', function() {
-                var url;
+            showConfirm('Удалить оплату ' + fmtRub(t.amount) + ' безвозвратно?', function() {
                 if (shiftId == null) {
-                    url = SCRIPT_URL + '?mode=delete_transaction&id=' + encodeURIComponent(String(t.id));
+                    postToServer({ action: 'admin_delete_transaction', id: String(t.id) }, 'Оплата удалена');
                 } else {
-                    url = SCRIPT_URL + '?mode=delete_journal_transaction&shiftId=' + encodeURIComponent(String(shiftId)) + '&transId=' + encodeURIComponent(String(t.id));
+                    postToServer({ action: 'admin_delete_journal_transaction', shiftId: String(shiftId), transId: String(t.id) }, 'Оплата удалена');
                 }
-                getToServer(url, 'Оплата удалена');
             });
         };
         row.appendChild(bDel);
@@ -301,33 +405,326 @@
         parent.appendChild(row);
     }
 
+    function renderShiftCard(live, journal) {
+        var card = el('div', 'card');
+
+        if (live && live.isOpen) {
+            var head = el('div', 'shift-head');
+            head.appendChild(el('span', 'badge badge-open', '● СМЕНА ОТКРЫТА'));
+            head.appendChild(el('span', 'shift-sub', 'с ' + fmtDT(live.openDate)));
+            card.appendChild(head);
+
+            card.appendChild(el('div', 'line', 'Открыл: ' + who(live.openBy)));
+            card.appendChild(el('div', 'line', 'Мастер: ' + (live.masterName || '— не отмечен')));
+
+            var rev = (live.totalCash || 0) + (live.totalTransfer || 0);
+            var chips = el('div', 'chips');
+            chips.appendChild(mkChip('Выручка', fmtRub(rev)));
+            chips.appendChild(mkChip('Нал', fmtRub(live.totalCash || 0)));
+            chips.appendChild(mkChip('Перевод', fmtRub(live.totalTransfer || 0)));
+            if (live.expenses > 0) chips.appendChild(mkChip('Расходы', fmtRub(live.expenses)));
+            chips.appendChild(mkChip('Оплат', String((live.transactions || []).length)));
+            card.appendChild(chips);
+
+            var bClose = el('button', 'btn btn-red btn-full', 'Закрыть смену');
+            bClose.onclick = function() {
+                var rounded = Math.ceil((live.masterSalary || 0) / 50) * 50;
+                var boss = rev - rounded - (live.expenses || 0);
+                var msg = 'Выручка: ' + fmtRub(rev) + ' (нал ' + fmtRub(live.totalCash || 0) + ' · перевод ' + fmtRub(live.totalTransfer || 0) + ')\n' +
+                    'Оплат: ' + (live.transactions || []).length + '\n' +
+                    (live.expenses > 0 ? 'Расходы: ' + fmtRub(live.expenses) + '\n' : '') +
+                    'Мастеру (расч.): ' + fmtRub(rounded) + '\n' +
+                    'Шефу (расч.): ' + fmtRub(boss) + '\n\nЗакрыть смену сейчас?';
+                showConfirm(msg, function() {
+                    postToServer({ action: 'admin_close', closeDate: String(serverNow()) }, 'Смена закрыта');
+                });
+            };
+            card.appendChild(bClose);
+        } else {
+            var head2 = el('div', 'shift-head');
+            head2.appendChild(el('span', 'badge badge-closed', '● СМЕНА ЗАКРЫТА'));
+            card.appendChild(head2);
+
+            if (journal && journal.length > 0) {
+                var lastS = journal[journal.length - 1];
+                card.appendChild(el('div', 'line', 'Последняя: ' + fmtDay(lastS.openDate) + ', закрыл ' + who(lastS.closeBy) + ' в ' + fmtTime(lastS.closeDate)));
+                if (lastS.needRecon) {
+                    var w = el('div', 'line');
+                    w.style.color = '#ffb74d';
+                    w.textContent = '⚠ Последняя смена требует сверки';
+                    card.appendChild(w);
+                }
+            } else {
+                card.appendChild(el('div', 'line', 'Смен ещё не было.'));
+            }
+
+            var bOpen = el('button', 'btn btn-green btn-full', 'Открыть смену');
+            bOpen.onclick = openShiftDialog;
+            card.appendChild(bOpen);
+        }
+        return card;
+    }
+
+    // ---------- Сверка ----------
+
+    function buildRecon(s) {
+        var snap = s.closeSnap;
+        var st = snap ? snap.totals : null;
+        var txs = s.transactions || [];
+        var cash = 0, tr = 0, msum = 0;
+        for (var i = 0; i < txs.length; i++) {
+            if (txs[i].type === 'cash') cash += txs[i].amount;
+            if (txs[i].type === 'transfer') tr += txs[i].amount;
+            msum += txs[i].masterShare || 0;
+        }
+        var salaryNow = Math.ceil(msum / 50) * 50;
+        var revenueNow = cash + tr;
+        var bossNow = revenueNow - salaryNow - (s.expenses || 0);
+
+        var added = [], removed = [], edited = [], dupes = [];
+        if (snap) {
+            var snapById = {}, nowById = {}, k;
+            for (i = 0; i < snap.txs.length; i++) snapById[String(snap.txs[i].id)] = snap.txs[i];
+            for (i = 0; i < txs.length; i++) nowById[String(txs[i].id)] = txs[i];
+            for (i = 0; i < txs.length; i++) {
+                if (!snapById[String(txs[i].id)]) added.push(txs[i]);
+                else if (snapById[String(txs[i].id)].amount !== txs[i].amount || snapById[String(txs[i].id)].type !== txs[i].type) edited.push(txs[i]);
+            }
+            for (i = 0; i < snap.txs.length; i++) {
+                if (!nowById[String(snap.txs[i].id)]) removed.push(snap.txs[i]);
+            }
+            // возможные дубли: одинаковая сумма и тип в пределах 10 минут
+            var pool = snap.txs.concat(added);
+            var seen = {};
+            for (i = 0; i < added.length; i++) {
+                for (var j = 0; j < pool.length; j++) {
+                    var a = added[i], b = pool[j];
+                    if (a === b) continue;
+                    if (a.type === b.type && a.amount === b.amount && Math.abs((a.time || 0) - (b.time || 0)) <= 600000) {
+                        var key = [String(a.id), String(b.id)].sort().join('|');
+                        if (!seen[key]) { seen[key] = 1; dupes.push({ a: a, b: b }); }
+                    }
+                }
+            }
+        }
+        return {
+            st: st, cash: cash, tr: tr, countN: txs.length,
+            salaryNow: salaryNow, revenueNow: revenueNow, bossNow: bossNow,
+            dCount: st ? txs.length - st.count : 0,
+            dRevenue: st ? revenueNow - st.revenue : 0,
+            dCash: st ? cash - st.cash : 0,
+            dTransfer: st ? tr - st.transfer : 0,
+            dSalary: st ? salaryNow - st.salary : 0,
+            dBoss: st ? bossNow - st.boss : 0,
+            dExpenses: st ? (s.expenses || 0) - st.expenses : 0,
+            added: added, removed: removed, edited: edited, dupes: dupes
+        };
+    }
+
+    function reconPanel(s) {
+        var box = el('div', 'recon-box');
+
+        if (!s.closeSnap) {
+            box.appendChild(el('div', 'recon-line', 'Снимок закрытия недоступен (смена закрыта до v12) — сверяйте по списку оплат ниже.'));
+            return box;
+        }
+
+        var r = buildRecon(s);
+        var st = r.st;
+
+        box.appendChild(el('div', 'recon-line',
+            'На закрытии (' + fmtDT(s.closeSnap.closeDate) + ', закрыл ' + who(s.closeSnap.closeBy) + '): ' +
+            st.count + ' опл., выручка ' + fmtRub(st.revenue) + ' (нал ' + fmtRub(st.cash) + ' · перевод ' + fmtRub(st.transfer) + '), мастеру ' + fmtRub(st.salary) + ', шефу ' + fmtRub(st.boss) + ', расходы ' + fmtRub(st.expenses)));
+        box.appendChild(el('div', 'recon-line',
+            'Сейчас: ' + r.countN + ' опл., выручка ' + fmtRub(r.revenueNow) + ' (нал ' + fmtRub(r.cash) + ' · перевод ' + fmtRub(r.tr) + '), мастеру ' + fmtRub(r.salaryNow) + ', шефу ' + fmtRub(r.bossNow) + ', расходы ' + fmtRub(s.expenses || 0)));
+
+        var chips = el('div', 'chips');
+        var c1 = mkDelta('Оплат', r.dCount);
+        if (c1) { c1.textContent = 'Оплат ' + (r.dCount > 0 ? '+' : '') + r.dCount; chips.appendChild(c1); }
+        var cds = [mkDelta('Выручка', r.dRevenue), mkDelta('Нал', r.dCash), mkDelta('Перевод', r.dTransfer),
+                   mkDelta('Мастеру', r.dSalary), mkDelta('Шефу', r.dBoss), mkDelta('Расходы', r.dExpenses)];
+        for (var i = 0; i < cds.length; i++) if (cds[i]) chips.appendChild(cds[i]);
+        if (chips.childNodes.length > 0) box.appendChild(chips);
+        else box.appendChild(el('div', 'recon-line', 'Изменений после закрытия нет.'));
+
+        if (r.dupes.length > 0) {
+            box.appendChild(el('div', 'recon-title', 'Возможные дубли (одинаковая сумма в пределах 10 мин):'));
+            for (i = 0; i < r.dupes.length; i++) {
+                var d = r.dupes[i];
+                box.appendChild(el('div', 'dupe-warn',
+                    '⚠ ' + fmtTime(d.a.time) + ' и ' + fmtTime(d.b.time) + ' · ' + (d.a.type === 'cash' ? 'нал' : 'безнал') + ' · ' + fmtRub(d.a.amount)));
+            }
+        }
+
+        if (r.added.length > 0 || r.edited.length > 0 || r.removed.length > 0) {
+            box.appendChild(el('div', 'recon-title', 'Изменения после закрытия:'));
+            var holder = el('div', '');
+            for (i = 0; i < r.added.length; i++) {
+                (function(t) {
+                    var row = el('div', 'tx-row');
+                    var txt = el('div', 'tx-text');
+                    txt.appendChild(mkSrcTag(t));
+                    if (t.late) txt.appendChild(el('span', 'late-tag', '⏱ поздняя'));
+                    txt.appendChild(document.createTextNode(fmtTime(t.time) + ' · ' + (t.type === 'cash' ? 'Нал' : 'Безнал') + ' · ' + fmtRub(t.amount)));
+                    row.appendChild(txt);
+                    var bDel = el('button', 'btn-sm btn-sm-del', 'X');
+                    bDel.onclick = function() {
+                        showConfirm('Удалить оплату ' + fmtRub(t.amount) + ' из закрытой смены?', function() {
+                            postToServer({ action: 'admin_delete_journal_transaction', shiftId: String(s.id), transId: String(t.id) }, 'Оплата удалена');
+                        });
+                    };
+                    row.appendChild(bDel);
+                    holder.appendChild(row);
+                })(r.added[i]);
+            }
+            for (i = 0; i < r.edited.length; i++) {
+                var t2 = r.edited[i];
+                var before = null;
+                for (var q = 0; q < s.closeSnap.txs.length; q++) {
+                    if (String(s.closeSnap.txs[q].id) === String(t2.id)) { before = s.closeSnap.txs[q]; break; }
+                }
+                holder.appendChild(el('div', 'recon-line',
+                    fmtTime(t2.time) + ' · изменена: было ' + (before ? fmtRub(before.amount) : '?') + ' -> стало ' + fmtRub(t2.amount)));
+            }
+            for (i = 0; i < r.removed.length; i++) {
+                var t3 = r.removed[i];
+                holder.appendChild(el('div', 'recon-line',
+                    fmtTime(t3.time) + ' · ' + (t3.type === 'cash' ? 'Нал' : 'Безнал') + ' · ' + fmtRub(t3.amount) + ' — удалена после закрытия'));
+            }
+            box.appendChild(holder);
+        }
+
+        if (s.needRecon) {
+            var bOk = el('button', 'btn btn-green btn-full', '✓ Сверено');
+            bOk.onclick = function() {
+                postToServer({ action: 'recon_done', shiftId: String(s.id) }, 'Сверка подтверждена');
+            };
+            box.appendChild(bOk);
+        } else if (s.reconCheckedAt) {
+            box.appendChild(el('div', 'recon-line', 'Сверено: ' + fmtDT(s.reconCheckedAt)));
+        }
+        return box;
+    }
+
+    // ---------- Карточка смены из журнала ----------
+
+    function summaryEl(text) { return el('summary', null, text); }
+
+    function shiftCard(s) {
+        var card = el('div', 'card');
+
+        var head = el('div', 'shift-head');
+        var title = el('div', 'shift-title',
+            fmtDay(s.openDate) + ' · ' + fmtTime(s.openDate) + '-' + fmtTime(s.closeDate) + ' · ' + (s.masterName || 'без мастера'));
+        head.appendChild(title);
+        var badges = el('div', '');
+        if (s.needRecon) badges.appendChild(el('span', 'badge badge-warn', '⚠ сверка'));
+        else if (s.reconCheckedAt) badges.appendChild(el('span', 'badge badge-ok', '✓'));
+        head.appendChild(badges);
+        card.appendChild(head);
+        card.appendChild(el('div', 'shift-sub', 'открыл: ' + who(s.openBy) + ' · закрыл: ' + who(s.closeBy)));
+
+        var txs = s.transactions || [];
+        var rev = (s.totalCash || 0) + (s.totalTransfer || 0);
+        var chips = el('div', 'chips');
+        chips.appendChild(mkChip('Выручка', fmtRub(rev)));
+        chips.appendChild(mkChip('Нал', fmtRub(s.totalCash || 0)));
+        chips.appendChild(mkChip('Перевод', fmtRub(s.totalTransfer || 0)));
+        chips.appendChild(mkChip('Мастеру', fmtRub(s.masterSalary || 0)));
+        chips.appendChild(mkChip('Шефу', fmtRub(s.bossShare || 0)));
+        if (s.expenses > 0) chips.appendChild(mkChip('Расходы', fmtRub(s.expenses)));
+        chips.appendChild(mkChip('Оплат', String(txs.length)));
+        card.appendChild(chips);
+
+        var dRep = el('details');
+        dRep.appendChild(summaryEl('Отчёт'));
+        var rep = el('div', 'line report');
+        rep.textContent = s.report || '';
+        dRep.appendChild(rep);
+        card.appendChild(dRep);
+
+        if (s.closeSnap || s.needRecon) {
+            var dRec = el('details');
+            if (s.needRecon) dRec.open = true;
+            dRec.appendChild(summaryEl('Сверка'));
+            dRec.appendChild(reconPanel(s));
+            card.appendChild(dRec);
+        }
+
+        var dTx = el('details');
+        dTx.appendChild(summaryEl('Оплаты (' + txs.length + ')'));
+        var holder = el('div', '');
+        if (txs.length === 0) {
+            holder.appendChild(el('div', 'empty', 'Пусто.'));
+        } else {
+            for (var k = txs.length - 1; k >= 0; k--) txRow(holder, txs[k], s.id);
+        }
+        var bAddJ = el('button', 'btn btn-green btn-full', '+ Добавить оплату в смену');
+        bAddJ.onclick = (function(sid) {
+            return function() {
+                showPayDialog('Добавить оплату в закрытую смену', null, 'cash', function(amount, type) {
+                    postToServer({ action: 'add_journal_transaction', shiftId: String(sid), id: 'aj' + Date.now(), type: type, amount: amount, time: String(serverNow()) }, 'Оплата добавлена');
+                });
+            };
+        })(s.id);
+        holder.appendChild(bAddJ);
+        dTx.appendChild(holder);
+        card.appendChild(dTx);
+
+        var bExp = el('button', 'btn btn-grey btn-full', '+ Расход в смену');
+        bExp.onclick = (function(sid) {
+            return function() { expenseDialog(String(sid)); };
+        })(s.id);
+        card.appendChild(bExp);
+
+        var bDelS = el('button', 'btn btn-red btn-full', 'Удалить всю смену');
+        bDelS.onclick = (function(sid) {
+            return function() {
+                showConfirm('Вся смена и все её оплаты будут удалены безвозвратно. Продолжить?', function() {
+                    postToServer({ action: 'admin_delete_shift', id: String(sid) }, 'Смена удалена');
+                });
+            };
+        })(s.id);
+        card.appendChild(bDelS);
+
+        return card;
+    }
+
     function render(db) {
         var content = $('content');
+        if (!content) return;
         content.innerHTML = '';
 
         try {
-            var live = db.live;
+            var live = db.live || {};
+            var journal = db.journal || [];
 
-            content.appendChild(el('div', 'section-title', 'ТЕКУЩАЯ СМЕНА'));
+            if (serverVer !== NEED_SERVER_VER) {
+                var warn = el('div', 'card');
+                warn.style.border = '1px solid #e53935';
+                warn.appendChild(el('div', 'line', serverVer == null
+                    ? 'Не удалось проверить версию сервера. Открытие/закрытие смены и сверка требуют Code.gs v12.'
+                    : 'Сервер версии v' + serverVer + '. Обновите Code.gs до v' + NEED_SERVER_VER + ', иначе управление сменой и сверка не работают.'));
+                content.appendChild(warn);
+            }
 
-            if (live && live.isOpen) {
-                var c1 = el('div', 'card');
-                c1.appendChild(el('div', 'line', 'Мастер: ' + (live.masterName || 'Неизвестно')));
-                c1.appendChild(el('div', 'line', 'Наличными: ' + (live.totalCash || 0) + ' руб'));
-                c1.appendChild(el('div', 'line', 'Переводами: ' + (live.totalTransfer || 0) + ' руб'));
-                if (live.expenses > 0) c1.appendChild(el('div', 'line', 'Расходы: -' + live.expenses + ' руб'));
-                content.appendChild(c1);
+            content.appendChild(el('div', 'section-title', 'СМЕНА'));
+            content.appendChild(renderShiftCard(live, journal));
 
+            if (live.isOpen) {
                 var bAdd = el('button', 'btn btn-green btn-full', '+ Добавить оплату');
                 bAdd.onclick = function() {
                     showPayDialog('Добавить оплату', null, 'cash', function(amount, type) {
-                        var m = Math.round(amount * 0.4);
-                        postToServer({ action: 'admin_add_transaction', type: type, amount: amount, masterShare: m, bossShare: amount - m }, 'Оплата добавлена');
+                        postToServer({ action: 'admin_add_transaction', id: 'a' + Date.now(), type: type, amount: amount, time: String(serverNow()) }, 'Оплата добавлена');
                     });
                 };
                 content.appendChild(bAdd);
 
-                content.appendChild(el('div', 'sub-title', '--- Транзакции ---'));
+                var bExp = el('button', 'btn btn-grey btn-full', '+ Прочий расход');
+                bExp.onclick = function() { expenseDialog(null); };
+                content.appendChild(bExp);
+
+                content.appendChild(el('div', 'sub-title', '--- Оплаты текущей смены ---'));
                 var trs = live.transactions || [];
                 if (trs.length === 0) {
                     content.appendChild(el('div', 'empty', 'Пусто.'));
@@ -336,53 +733,16 @@
                     for (var i = trs.length - 1; i >= 0; i--) txRow(c2, trs[i], null);
                     content.appendChild(c2);
                 }
-            } else {
-                content.appendChild(el('div', 'empty', 'Смена закрыта. Ждем открытия.'));
             }
 
             content.appendChild(el('div', 'divider'));
-
             content.appendChild(el('div', 'section-title', 'ЖУРНАЛ СМЕН'));
 
-            var journal = db.journal || [];
             if (journal.length === 0) {
                 content.appendChild(el('div', 'empty', 'История пуста.'));
             } else {
                 for (var j = journal.length - 1; j >= 0; j--) {
-                    var s = journal[j];
-                    var card = el('div', 'card');
-                    var rep = el('div', 'line report');
-                    rep.textContent = s.report;
-                    card.appendChild(rep);
-
-                    var jtrs = s.transactions || [];
-                    if (jtrs.length > 0) {
-                        card.appendChild(el('div', 'sub-title', '--- Оплаты этой смены ---'));
-                        for (var k = jtrs.length - 1; k >= 0; k--) txRow(card, jtrs[k], s.id);
-                    }
-
-                    var bAddJ = el('button', 'btn btn-green btn-full', '+ Добавить оплату в смену');
-                    bAddJ.onclick = (function(sid) {
-                        return function() {
-                            showPayDialog('Добавить оплату', null, 'cash', function(amount, type) {
-                                var m = Math.round(amount * 0.4);
-                                postToServer({ action: 'add_journal_transaction', shiftId: String(sid), type: type, amount: amount, masterShare: m, bossShare: amount - m }, 'Оплата добавлена');
-                            });
-                        };
-                    })(s.id);
-                    card.appendChild(bAddJ);
-
-                    var bDelS = el('button', 'btn btn-red btn-full', 'Удалить всю смену');
-                    bDelS.onclick = (function(sid) {
-                        return function() {
-                            showConfirm('Вся смена и все её оплаты будут удалены безвозвратно. Продолжить?', function() {
-                                getToServer(SCRIPT_URL + '?mode=delete&id=' + encodeURIComponent(String(sid)), 'Смена удалена');
-                            });
-                        };
-                    })(s.id);
-                    card.appendChild(bDelS);
-
-                    content.appendChild(card);
+                    content.appendChild(shiftCard(journal[j]));
                 }
             }
         } catch (e) {
@@ -398,7 +758,6 @@
         $('type-transfer').className = 'type-btn' + (t === 'transfer' ? ' active' : '');
     }
 
-    // Режим оплат: слот пустой, родные элементы видимы
     function showPayDialog(title, amount, type, onSave) {
         cleanupBookSlot();
         $('pay-title').textContent = title;
@@ -412,6 +771,7 @@
         $('pay-modal').classList.remove('open');
         payCtx.onSave = null;
         cleanupBookSlot();
+        afterModalClosed();
     }
 
     function confirmPayModal() {
@@ -422,9 +782,9 @@
         payCtx.onSave = null;
         cleanupBookSlot();
         if (onSave) onSave(v, payType);
+        afterModalClosed();
     }
 
-    // Слот: очистка = возврат модалки в режим оплат
     function cleanupBookSlot() {
         $('pay-slot').innerHTML = '';
         $('pay-title').style.display = '';
@@ -442,6 +802,18 @@
     function closeConfirmModal() {
         $('confirm-modal').classList.remove('open');
         confirmAction = null;
+        afterModalClosed();
+    }
+
+    function afterModalClosed() {
+        // если данные приходили, пока модалка была открыта — дозаполняем экран
+        setTimeout(function() {
+            if (pendingRender && !modalOpen()) {
+                pendingRender = false;
+                if (document.getElementById('book-slots')) renderBookDay();
+                else if (lastDb) render(lastDb);
+            }
+        }, 50);
     }
 
     $('confirm-yes').onclick = function() {
@@ -454,16 +826,68 @@
         if (e.key === 'Enter') tryUnlock();
     });
 
-    // ================= ЭКРАН ЗАПИСИ (админ PWA) =================
+    // ---------- Открытие смены (модалка в слоте) ----------
+
+    function openShiftDialog() {
+        cleanupBookSlot();
+        $('pay-slot').innerHTML =
+            '<div class="modal-title" style="margin-bottom:12px;">Открыть смену</div>' +
+            '<div style="font-size:14px;color:#aaaaaa;margin-bottom:10px;text-align:center;">Время открытия: ' + fmtTime(serverNow()) + '</div>' +
+            '<input type="text" id="os-master" class="pay-input" style="text-align:left;padding-left:14px;font-size:18px;" placeholder="Мастер (необязательно)">' +
+            '<div class="modal-btns" style="margin-top:10px;">' +
+            '<button class="btn btn-grey" onclick="closePayModal()">Отмена</button>' +
+            '<button class="btn btn-green" onclick="osConfirm()">Открыть</button>' +
+            '</div>';
+        $('pay-title').style.display = 'none';
+        $('pay-amount').style.display = 'none';
+        document.querySelector('#pay-modal .type-toggle').style.display = 'none';
+        document.querySelector('#pay-modal .modal-btns').style.display = 'none';
+        $('pay-modal').classList.add('open');
+    }
+
+    function osConfirm() {
+        var master = '';
+        var inp = $('os-master');
+        if (inp) master = inp.value.trim();
+        closePayModal();
+        postToServer({ action: 'admin_open', master: master, openDate: String(serverNow()) }, 'Смена открыта');
+    }
+
+    // ---------- Расход (модалка в слоте) ----------
+
+    function expenseDialog(shiftId) {
+        cleanupBookSlot();
+        $('pay-slot').innerHTML =
+            '<div class="modal-title" style="margin-bottom:12px;">' + (shiftId ? 'Расход в закрытую смену' : 'Прочий расход (текущая смена)') + '</div>' +
+            '<input type="number" id="ex-amount" class="pay-input" placeholder="Сумма (руб)">' +
+            '<div class="modal-btns" style="margin-top:10px;">' +
+            '<button class="btn btn-grey" onclick="closePayModal()">Отмена</button>' +
+            '<button class="btn btn-green" onclick="exConfirm(' + (shiftId ? "'" + escB(shiftId) + "'" : 'null') + ')">Добавить</button>' +
+            '</div>';
+        $('pay-title').style.display = 'none';
+        $('pay-amount').style.display = 'none';
+        document.querySelector('#pay-modal .type-toggle').style.display = 'none';
+        document.querySelector('#pay-modal .modal-btns').style.display = 'none';
+        $('pay-modal').classList.add('open');
+    }
+
+    function exConfirm(shiftId) {
+        var v = parseInt(($('ex-amount') || {}).value, 10);
+        if (!v || v <= 0) { toast('Введите сумму'); return; }
+        closePayModal();
+        var params = { action: 'admin_add_expense', amount: v, id: 'aexp' + Date.now(), time: String(serverNow()) };
+        if (shiftId) params.shiftId = String(shiftId);
+        postToServer(params, 'Расход добавлен');
+    }
+
+    // ================= ЭКРАН ЗАПИСИ =================
     var bookYmd = null;
-    var lastDb = null;
     var bookActionCtx = { bk: null };
     var abfCurType = 'car';
     var WDm = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
     var MGm = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
 
-    function pad2m(n) { return (n < 10 ? '0' : '') + n; }
-    function todayYmd() { var d = new Date(); return d.getFullYear() + '-' + pad2m(d.getMonth() + 1) + '-' + pad2m(d.getDate()); }
+    function todayYmd() { var d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
     function ymdLabelOf(ymd) {
         var p = ymd.split('-');
         var d = new Date(+p[0], +p[1] - 1, +p[2]);
@@ -471,30 +895,28 @@
     }
     function ymdLimit(delta) {
         var d = new Date(Date.now() + delta * 86400000);
-        return d.getFullYear() + '-' + pad2m(d.getMonth() + 1) + '-' + pad2m(d.getDate());
-    }
-    function escB(s) {
-        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+        return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
     }
 
     function openBookView() {
-        var app = $('app');
-        app.innerHTML =
+        $('app').innerHTML =
             '<div class="wrap">' +
             '<div class="app-header">' +
             '<div class="app-title">ЗАПИСЬ</div>' +
             '<div class="header-btns">' +
             '<button class="btn-mini" id="bk-today" style="display:none;background-color:#00838f" onclick="bookGoToday()">Сегодня</button>' +
             '<button class="btn-mini" onclick="refreshNow()">Обновить</button>' +
-            '<button class="btn-mini btn-mini-red" onclick="location.reload()">✕</button>' +
+            '<button class="btn-mini btn-mini-red" onclick="renderMainShell()">✕</button>' +
             '</div></div>' +
-            '<div style="display:flex;align-items:center;gap:8px;margin:12px 0 14px 0;">' +
+            '<div class="status-line" id="status-line"></div>' +
+            '<div style="display:flex;align-items:center;gap:8px;margin:2px 0 14px 0;">' +
             '<button class="btn-mini" style="width:52px;font-size:24px;padding:10px 0;" onclick="bookShift(-1)">‹</button>' +
             '<div id="bv-date" style="flex:1;text-align:center;color:#fff;font-weight:600;font-size:17px;"></div>' +
             '<button class="btn-mini" style="width:52px;font-size:24px;padding:10px 0;" onclick="bookShift(1)">›</button>' +
             '</div>' +
             '<div id="book-slots"></div>' +
             '</div>';
+        if (lastUpdated) setStatus(statusText('Обновлено: ' + lastUpdated.toLocaleTimeString('ru-RU')));
         if (bookYmd == null) bookYmd = todayYmd();
         renderBookDay();
         refreshNow();
@@ -506,7 +928,7 @@
         var p = bookYmd.split('-');
         var d = new Date(+p[0], +p[1] - 1, +p[2]);
         d.setDate(d.getDate() + delta);
-        var ymd = d.getFullYear() + '-' + pad2m(d.getMonth() + 1) + '-' + pad2m(d.getDate());
+        var ymd = d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
         var lo = ymdLimit(-3), hi = ymdLimit(30);
         if (ymd < lo) ymd = lo;
         if (ymd > hi) ymd = hi;
@@ -515,8 +937,8 @@
     }
 
     function renderBookDay() {
-        var el = document.getElementById('bv-date');
-        if (el) el.textContent = ymdLabelOf(bookYmd);
+        var elD = document.getElementById('bv-date');
+        if (elD) elD.textContent = ymdLabelOf(bookYmd);
         var tbtn = document.getElementById('bk-today');
         if (tbtn) tbtn.style.display = (bookYmd === todayYmd()) ? 'none' : '';
         var c = document.getElementById('book-slots');
@@ -555,13 +977,17 @@
                     row.style.opacity = '0.55';
                     mid.style.color = '#888';
                     mid.textContent = '✓ сделано: ' + txt;
+                } else if (b.status === 'cancelled') {
+                    row.style.opacity = '0.55';
+                    mid.style.color = '#e53935';
+                    mid.textContent = '✕ отменена: ' + txt;
                 } else {
                     mid.style.color = '#E0E0E0';
                     mid.textContent = txt + ' [' + (b.type === 'van' ? '2ч' : '1ч') + ']';
-                    (function(bk) {
-                        row.onclick = function() { adminBookActions(bk); };
-                    })(b);
                 }
+                (function(bk) {
+                    row.onclick = function() { adminBookActions(bk); };
+                })(b);
             } else {
                 mid.style.color = '#888';
                 mid.style.fontSize = '13px';
@@ -573,8 +999,7 @@
     }
 
     // Режимы модалки записи: всё рендерится В СЛОТ pay-slot,
-    // родные элементы оплат скрываются ЦЕЛИКОМ. Плодиться нечему:
-    // каждое открытие сначала затирает слот (innerHTML=...).
+    // родные элементы оплат скрываются ЦЕЛИКОМ.
     function adminBookForm(existing, slot) {
         var isEdit = !!existing;
         abfCurType = existing ? existing.type : 'car';
@@ -584,12 +1009,12 @@
             '<button id="abf-car" class="type-btn" style="flex:1;' + (abfCurType === 'car' ? 'background:#2e7d32;color:#fff;border-color:#2e7d32;' : '') + '" onclick="abfType(\'car\')">Легковая · 1ч</button>' +
             '<button id="abf-van" class="type-btn" style="flex:1;' + (abfCurType === 'van' ? 'background:#2e7d32;color:#fff;border-color:#2e7d32;' : '') + '" onclick="abfType(\'van\')">Газель · 2ч</button>' +
             '</div>' +
-            '<input type="number" id="abf-start" class="pay-input" placeholder="Час начала (8–17)" value="' + (existing ? existing.start : slot) + '">' +
+            '<input type="number" id="abf-start" class="pay-input" placeholder="Час начала (8-17)" value="' + (existing ? existing.start : slot) + '">' +
             '<input type="text" id="abf-brand" class="pay-input" style="text-align:left;padding-left:14px;font-size:20px;" placeholder="Марка" value="' + escB(existing ? existing.brand : '') + '">' +
             '<input type="number" id="abf-number" class="pay-input" placeholder="Госномер (цифры)" value="' + escB(existing ? existing.number : '') + '">' +
             '<div class="modal-btns" style="margin-top:10px;">' +
             '<button class="btn btn-grey" onclick="closePayModal()">Отмена</button>' +
-            '<button class="btn btn-green" onclick="abfSave(' + (isEdit ? '\'' + existing.id + '\'' : 'null') + ')">Сохранить</button>' +
+            '<button class="btn btn-green" onclick="abfSave(' + (isEdit ? '\'' + escB(existing.id) + '\'' : 'null') + ')">Сохранить</button>' +
             '</div>';
         $('pay-title').style.display = 'none';
         $('pay-amount').style.display = 'none';
@@ -612,34 +1037,27 @@
         var hours = vtype === 'van' ? 2 : 1;
         var brand = document.getElementById('abf-brand').value.trim();
         var number = document.getElementById('abf-number').value.trim();
-        if (isNaN(start) || start < 8 || start > 17) { toast('Час 8–17'); return; }
+        if (isNaN(start) || start < 8 || start > 17) { toast('Час 8-17'); return; }
         if (vtype === 'van' && start > 16) { toast('Газели — старт до 16:00'); return; }
         if (!brand && !number) { toast('Марка или номер'); return; }
         var id = existingId || ('admbk' + Date.now());
-        var usp = new URLSearchParams();
-        usp.set('pass', pass); usp.set('action', 'book');
-        usp.set('id', id); usp.set('date', bookYmd);
-        usp.set('start', String(start)); usp.set('hours', String(hours));
-        usp.set('type', vtype); usp.set('brand', brand); usp.set('number', number);
-        fetch(SCRIPT_URL, { method: 'POST', body: usp })
-            .then(function(r) { return r.text(); })
-            .then(function(t) {
-                closePayModal();
-                if (t.trim() === 'OK') { toast('Запись сохранена'); refreshNow(); }
-                else { toast('Ошибка: ' + t); }
-            })
-            .catch(function() { toast('Ошибка сети'); });
+        closePayModal();
+        postToServer({
+            action: 'book', id: id, date: bookYmd,
+            start: String(start), hours: String(hours),
+            type: vtype, brand: brand, number: number
+        }, 'Запись сохранена');
     }
 
     function adminBookActions(bk) {
         bookActionCtx.bk = bk;
         var txt = ((bk.brand || '—') + ' ' + (bk.number || '—')).trim();
         $('pay-slot').innerHTML =
-            '<div class="modal-title" style="margin-bottom:12px;">' + escB(txt) + ' · ' + bk.start + ':00–' + (bk.start + bk.hours) + ':00</div>' +
+            '<div class="modal-title" style="margin-bottom:12px;">' + escB(txt) + ' · ' + bk.start + ':00-' + (bk.start + bk.hours) + ':00</div>' +
             '<button class="btn btn-full" style="background:#ff9800;color:#000;margin:4px 0;" onclick="adminBookForm(bookActionCtx.bk, ' + bk.start + ')">✏ Изменить (форма)</button>' +
             '<button class="btn btn-full" style="background:#2e7d32;margin:4px 0;" onclick="abkDo(\'done\')">✓ Сделано</button>' +
             '<button class="btn btn-full" style="background:#ff9800;color:#000;margin:4px 0;" onclick="abkDo(\'cancelled\')">✕ Отмена записи</button>' +
-            '<button class="btn btn-full" style="background:#e53935;margin:4px 0;" onclick="abkDo(\'noshow\')">! Нет клиента</button>' +
+            '<button class="btn btn-full" style="background:#e53935;margin:4px 0;" onclick="abkDelete()">🗑 Удалить запись</button>' +
             '<button class="btn btn-full" style="background:#333333;margin:8px 0 0 0;" onclick="closePayModal()">Закрыть</button>';
         $('pay-title').style.display = 'none';
         $('pay-amount').style.display = 'none';
@@ -650,13 +1068,16 @@
 
     function abkDo(status) {
         var id = bookActionCtx.bk.id;
-        var usp = new URLSearchParams();
-        usp.set('pass', pass); usp.set('action', 'book_status');
-        usp.set('id', id); usp.set('status', status);
-        fetch(SCRIPT_URL, { method: 'POST', body: usp })
-            .then(function(r) { return r.text(); })
-            .then(function() { closePayModal(); toast('Статус обновлён'); refreshNow(); })
-            .catch(function() { toast('Ошибка сети'); });
+        closePayModal();
+        postToServer({ action: 'book_status', id: id, status: status }, 'Статус обновлён');
+    }
+
+    function abkDelete() {
+        var id = bookActionCtx.bk.id;
+        showConfirm('Удалить запись безвозвратно?', function() {
+            closePayModal();
+            postToServer({ action: 'book_delete', id: id }, 'Запись удалена');
+        });
     }
     // ================= КОНЕЦ ЭКРАНА ЗАПИСИ =================
 
