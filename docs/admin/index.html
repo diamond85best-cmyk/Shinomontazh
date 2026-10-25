@@ -120,6 +120,7 @@
             <div id="pay-slot"></div>
             <div class="modal-title" id="pay-title"></div>
             <input type="number" id="pay-amount" class="pay-input" placeholder="Сумма (руб)">
+            <div id="pay-extra"></div>
             <div class="type-toggle">
                 <button id="type-cash" class="type-btn" onclick="setPayType('cash')">Наличные</button>
                 <button id="type-transfer" class="type-btn" onclick="setPayType('transfer')">Перевод</button>
@@ -148,8 +149,8 @@
 <script>
     var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxiqxOD5Fuj8FYLp3OEg5HKTbr1YS2gT7Dxp0BywWnoROYW85rkjD3clJc7dvfaVpJqiw/exec';
     var PASS_KEY = 'shino_admin_pass';
-    var APP_VER = 'v2.1';
-    var NEED_SERVER_VER = 12;
+    var APP_VER = 'v2.2';
+    var NEED_SERVER_VER = 13;
 
     var pass = '';
     var fetchInFlight = false;
@@ -189,6 +190,25 @@
     }
     function serverNow() { return Date.now() + serverOffset; }
     function who(by) { return by === 'admin' ? 'админ' : 'мастер'; }
+
+    // ---------- Даты/время в формах (v2.2) ----------
+
+    function ymdOf(ms) { var d = new Date(ms); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+    function hmOf(ms) { var d = new Date(ms); return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
+    function parseDT(dateStr, timeStr) {
+        var dp = String(dateStr || '').split('-');
+        var tp = String(timeStr || '').split(':');
+        if (dp.length !== 3 || tp.length < 2) return NaN;
+        var y = +dp[0], mo = +dp[1], da = +dp[2], h = +tp[0], mi = +tp[1];
+        if (!y || !mo || !da || isNaN(h) || isNaN(mi)) return NaN;
+        return new Date(y, mo - 1, da, h, mi, 0, 0).getTime();
+    }
+    function dtRowHTML(dId, tId, dVal, tVal) {
+        return '<div style="display:flex;gap:8px;">' +
+            '<input type="date" id="' + dId + '" class="pay-input" style="flex:1;text-align:left;padding-left:12px;font-size:17px;" value="' + dVal + '">' +
+            '<input type="time" id="' + tId + '" class="pay-input" style="flex:1;text-align:left;padding-left:12px;font-size:17px;" value="' + tVal + '">' +
+            '</div>';
+    }
 
     function toast(msg) {
         var t = $('toast');
@@ -318,6 +338,8 @@
                 else if (text === 'NOT_FOUND') { toast('Не найдено на сервере — данные обновлены, повторите'); refreshNow(); }
                 else if (text === 'ALREADY_OPEN') { toast('Смена уже открыта'); refreshNow(); }
                 else if (text === 'NOT_OPEN') { toast('Смена не открыта'); refreshNow(); }
+                else if (text === 'BAD_DATES') { toast('Неверные даты: открытие раньше закрытия, дальнее будущее и т.п.'); refreshNow(); }
+                else if (text === 'OVERLAP') { toast('Даты пересекаются с другой сменой'); refreshNow(); }
                 else if (text.indexOf('авториза') !== -1) { toast('Неверный пароль'); lockApp(); }
                 else { toast('Ошибка: ' + text); }
             })
@@ -416,6 +438,7 @@
 
             card.appendChild(el('div', 'line', 'Открыл: ' + who(live.openBy)));
             card.appendChild(el('div', 'line', 'Мастер: ' + (live.masterName || '— не отмечен')));
+            if (live.datesEdited) card.appendChild(el('div', 'shift-sub', '✏ время открытия правлено ' + fmtDT(live.datesEditedAt)));
 
             var rev = (live.totalCash || 0) + (live.totalTransfer || 0);
             var chips = el('div', 'chips');
@@ -427,19 +450,12 @@
             card.appendChild(chips);
 
             var bClose = el('button', 'btn btn-red btn-full', 'Закрыть смену');
-            bClose.onclick = function() {
-                var rounded = Math.ceil((live.masterSalary || 0) / 50) * 50;
-                var boss = rev - rounded - (live.expenses || 0);
-                var msg = 'Выручка: ' + fmtRub(rev) + ' (нал ' + fmtRub(live.totalCash || 0) + ' · перевод ' + fmtRub(live.totalTransfer || 0) + ')\n' +
-                    'Оплат: ' + (live.transactions || []).length + '\n' +
-                    (live.expenses > 0 ? 'Расходы: ' + fmtRub(live.expenses) + '\n' : '') +
-                    'Мастеру (расч.): ' + fmtRub(rounded) + '\n' +
-                    'Шефу (расч.): ' + fmtRub(boss) + '\n\nЗакрыть смену сейчас?';
-                showConfirm(msg, function() {
-                    postToServer({ action: 'admin_close', closeDate: String(serverNow()) }, 'Смена закрыта');
-                });
-            };
+            bClose.onclick = function() { closeShiftDialog(live); };
             card.appendChild(bClose);
+
+            var bEditOpen = el('button', 'btn btn-grey btn-full', '✏ Время открытия');
+            bEditOpen.onclick = function() { editLiveDialog(live); };
+            card.appendChild(bEditOpen);
         } else {
             var head2 = el('div', 'shift-head');
             head2.appendChild(el('span', 'badge badge-closed', '● СМЕНА ЗАКРЫТА'));
@@ -620,6 +636,7 @@
         var badges = el('div', '');
         if (s.needRecon) badges.appendChild(el('span', 'badge badge-warn', '⚠ сверка'));
         else if (s.reconCheckedAt) badges.appendChild(el('span', 'badge badge-ok', '✓'));
+        if (s.datesEdited) badges.appendChild(el('span', 'badge badge-warn', '✏ даты'));
         head.appendChild(badges);
         card.appendChild(head);
         card.appendChild(el('div', 'shift-sub', 'открыл: ' + who(s.openBy) + ' · закрыл: ' + who(s.closeBy)));
@@ -662,9 +679,9 @@
         var bAddJ = el('button', 'btn btn-green btn-full', '+ Добавить оплату в смену');
         bAddJ.onclick = (function(sid) {
             return function() {
-                showPayDialog('Добавить оплату в закрытую смену', null, 'cash', function(amount, type) {
-                    postToServer({ action: 'add_journal_transaction', shiftId: String(sid), id: 'aj' + Date.now(), type: type, amount: amount, time: String(serverNow()) }, 'Оплата добавлена');
-                });
+                showPayDialog('Добавить оплату в закрытую смену', null, 'cash', function(amount, type, timeMs) {
+                    postToServer({ action: 'add_journal_transaction', shiftId: String(sid), id: 'aj' + Date.now(), type: type, amount: amount, time: String(timeMs) }, 'Оплата добавлена');
+                }, true);
             };
         })(s.id);
         holder.appendChild(bAddJ);
@@ -676,6 +693,12 @@
             return function() { expenseDialog(String(sid)); };
         })(s.id);
         card.appendChild(bExp);
+
+        var bDates = el('button', 'btn btn-grey btn-full', '✏ Даты и мастер смены');
+        bDates.onclick = (function(sh) {
+            return function() { editShiftDialog(sh); };
+        })(s);
+        card.appendChild(bDates);
 
         var bDelS = el('button', 'btn btn-red btn-full', 'Удалить всю смену');
         bDelS.onclick = (function(sid) {
@@ -703,8 +726,8 @@
                 var warn = el('div', 'card');
                 warn.style.border = '1px solid #e53935';
                 warn.appendChild(el('div', 'line', serverVer == null
-                    ? 'Не удалось проверить версию сервера. Открытие/закрытие смены и сверка требуют Code.gs v12.'
-                    : 'Сервер версии v' + serverVer + '. Обновите Code.gs до v' + NEED_SERVER_VER + ', иначе управление сменой и сверка не работают.'));
+                    ? 'Не удалось проверить версию сервера. Открытие/закрытие смены, правка дат и сверка требуют Code.gs v' + NEED_SERVER_VER + '.'
+                    : 'Сервер версии v' + serverVer + '. Обновите Code.gs до v' + NEED_SERVER_VER + ', иначе управление сменой и правка дат не работают.'));
                 content.appendChild(warn);
             }
 
@@ -714,9 +737,9 @@
             if (live.isOpen) {
                 var bAdd = el('button', 'btn btn-green btn-full', '+ Добавить оплату');
                 bAdd.onclick = function() {
-                    showPayDialog('Добавить оплату', null, 'cash', function(amount, type) {
-                        postToServer({ action: 'admin_add_transaction', id: 'a' + Date.now(), type: type, amount: amount, time: String(serverNow()) }, 'Оплата добавлена');
-                    });
+                    showPayDialog('Добавить оплату', null, 'cash', function(amount, type, timeMs) {
+                        postToServer({ action: 'admin_add_transaction', id: 'a' + Date.now(), type: type, amount: amount, time: String(timeMs) }, 'Оплата добавлена');
+                    }, true);
                 };
                 content.appendChild(bAdd);
 
@@ -758,11 +781,15 @@
         $('type-transfer').className = 'type-btn' + (t === 'transfer' ? ' active' : '');
     }
 
-    function showPayDialog(title, amount, type, onSave) {
+    function showPayDialog(title, amount, type, onSave, withTime) {
         cleanupBookSlot();
         $('pay-title').textContent = title;
         $('pay-amount').value = (amount != null) ? String(amount) : '';
         setPayType(type || 'cash');
+        if (withTime) {
+            $('pay-extra').innerHTML = dtRowHTML('pay-date', 'pay-time', ymdOf(serverNow()), hmOf(serverNow())) +
+                '<div style="font-size:12px;color:#888;margin:-4px 0 8px;text-align:center;">Время оплаты — как было по факту (по умолчанию сейчас)</div>';
+        }
         payCtx.onSave = onSave;
         $('pay-modal').classList.add('open');
     }
@@ -777,16 +804,24 @@
     function confirmPayModal() {
         var v = parseInt($('pay-amount').value, 10);
         if (!v || v <= 0) { toast('Введите сумму'); return; }
+        var timeMs = serverNow();
+        var pd = document.getElementById('pay-date');
+        if (pd) {
+            var ms = parseDT(pd.value, (document.getElementById('pay-time') || {}).value);
+            if (isNaN(ms)) { toast('Проверьте дату и время оплаты'); return; }
+            timeMs = ms;
+        }
         var onSave = payCtx.onSave;
         $('pay-modal').classList.remove('open');
         payCtx.onSave = null;
         cleanupBookSlot();
-        if (onSave) onSave(v, payType);
+        if (onSave) onSave(v, payType, timeMs);
         afterModalClosed();
     }
 
     function cleanupBookSlot() {
         $('pay-slot').innerHTML = '';
+        $('pay-extra').innerHTML = '';
         $('pay-title').style.display = '';
         $('pay-amount').style.display = '';
         document.querySelector('#pay-modal .type-toggle').style.display = '';
@@ -832,7 +867,8 @@
         cleanupBookSlot();
         $('pay-slot').innerHTML =
             '<div class="modal-title" style="margin-bottom:12px;">Открыть смену</div>' +
-            '<div style="font-size:14px;color:#aaaaaa;margin-bottom:10px;text-align:center;">Время открытия: ' + fmtTime(serverNow()) + '</div>' +
+            '<div style="font-size:12px;color:#888;margin:0 0 8px;text-align:center;">По умолчанию — сейчас. Если мастер записывал на бумаге и смена была раньше — поставьте её дату и время.</div>' +
+            dtRowHTML('os-date', 'os-time', ymdOf(serverNow()), hmOf(serverNow())) +
             '<input type="text" id="os-master" class="pay-input" style="text-align:left;padding-left:14px;font-size:18px;" placeholder="Мастер (необязательно)">' +
             '<div class="modal-btns" style="margin-top:10px;">' +
             '<button class="btn btn-grey" onclick="closePayModal()">Отмена</button>' +
@@ -849,8 +885,108 @@
         var master = '';
         var inp = $('os-master');
         if (inp) master = inp.value.trim();
+        var ms = parseDT(($('os-date') || {}).value, ($('os-time') || {}).value);
+        if (isNaN(ms)) { toast('Проверьте дату и время открытия'); return; }
         closePayModal();
-        postToServer({ action: 'admin_open', master: master, openDate: String(serverNow()) }, 'Смена открыта');
+        postToServer({ action: 'admin_open', master: master, openDate: String(ms) }, 'Смена открыта');
+    }
+
+    // ---------- Закрытие смены (с датой/временем, v2.2) ----------
+
+    function closeShiftDialog(live) {
+        cleanupBookSlot();
+        var rev = (live.totalCash || 0) + (live.totalTransfer || 0);
+        var rounded = Math.ceil((live.masterSalary || 0) / 50) * 50;
+        var boss = rev - rounded - (live.expenses || 0);
+        var summary =
+            'Выручка: ' + fmtRub(rev) + ' (нал ' + fmtRub(live.totalCash || 0) + ' · перевод ' + fmtRub(live.totalTransfer || 0) + ')\n' +
+            'Оплат: ' + (live.transactions || []).length + '\n' +
+            (live.expenses > 0 ? 'Расходы: ' + fmtRub(live.expenses) + '\n' : '') +
+            'Мастеру (расч.): ' + fmtRub(rounded) + '\n' +
+            'Шефу (расч.): ' + fmtRub(boss);
+        $('pay-slot').innerHTML =
+            '<div class="modal-title" style="margin-bottom:12px;">Закрыть смену</div>' +
+            '<div style="font-size:13px;color:#bbbbbb;line-height:1.5;white-space:pre-line;margin:0 0 12px;">' + escB(summary) + '</div>' +
+            '<div style="font-size:12px;color:#888;margin:0 0 8px;text-align:center;">Момент закрытия — по умолчанию сейчас; для смены «по бумаге» поставьте её время.</div>' +
+            dtRowHTML('cs-date', 'cs-time', ymdOf(serverNow()), hmOf(serverNow())) +
+            '<div class="modal-btns" style="margin-top:10px;">' +
+            '<button class="btn btn-grey" onclick="closePayModal()">Отмена</button>' +
+            '<button class="btn btn-red" onclick="csConfirm(' + String(live.openDate) + ')">Закрыть</button>' +
+            '</div>';
+        $('pay-title').style.display = 'none';
+        $('pay-amount').style.display = 'none';
+        document.querySelector('#pay-modal .type-toggle').style.display = 'none';
+        document.querySelector('#pay-modal .modal-btns').style.display = 'none';
+        $('pay-modal').classList.add('open');
+    }
+
+    function csConfirm(openDateMs) {
+        var ms = parseDT(($('cs-date') || {}).value, ($('cs-time') || {}).value);
+        if (isNaN(ms)) { toast('Проверьте дату и время закрытия'); return; }
+        if (ms <= openDateMs) { toast('Закрытие раньше открытия'); return; }
+        closePayModal();
+        postToServer({ action: 'admin_close', closeDate: String(ms) }, 'Смена закрыта');
+    }
+
+    // ---------- Правка времени открытия ТЕКУЩЕЙ смены (v2.2) ----------
+
+    function editLiveDialog(live) {
+        cleanupBookSlot();
+        $('pay-slot').innerHTML =
+            '<div class="modal-title" style="margin-bottom:12px;">Время открытия смены</div>' +
+            '<div style="font-size:12px;color:#888;margin:0 0 8px;text-align:center;">Не позже первой оплаты смены и не раньше последней закрытой смены.</div>' +
+            dtRowHTML('le-date', 'le-time', ymdOf(live.openDate), hmOf(live.openDate)) +
+            '<input type="text" id="le-master" class="pay-input" style="text-align:left;padding-left:14px;font-size:18px;" placeholder="Мастер (необязательно)" value="' + escB(live.masterName || '') + '">' +
+            '<div class="modal-btns" style="margin-top:10px;">' +
+            '<button class="btn btn-grey" onclick="closePayModal()">Отмена</button>' +
+            '<button class="btn btn-green" onclick="leConfirm()">Сохранить</button>' +
+            '</div>';
+        $('pay-title').style.display = 'none';
+        $('pay-amount').style.display = 'none';
+        document.querySelector('#pay-modal .type-toggle').style.display = 'none';
+        document.querySelector('#pay-modal .modal-btns').style.display = 'none';
+        $('pay-modal').classList.add('open');
+    }
+
+    function leConfirm() {
+        var ms = parseDT(($('le-date') || {}).value, ($('le-time') || {}).value);
+        if (isNaN(ms)) { toast('Проверьте дату и время'); return; }
+        var master = ((($('le-master') || {}).value) || '').trim();
+        closePayModal();
+        postToServer({ action: 'admin_edit_live_shift', openDate: String(ms), masterName: master }, 'Время открытия обновлено');
+    }
+
+    // ---------- Правка дат ЗАКРЫТОЙ смены (v2.2) ----------
+
+    function editShiftDialog(s) {
+        cleanupBookSlot();
+        $('pay-slot').innerHTML =
+            '<div class="modal-title" style="margin-bottom:12px;">Даты смены</div>' +
+            '<div style="font-size:12px;color:#888;margin:0 0 6px;text-align:center;">Открытие:</div>' +
+            dtRowHTML('es-od', 'es-ot', ymdOf(s.openDate), hmOf(s.openDate)) +
+            '<div style="font-size:12px;color:#888;margin:8px 0 6px;text-align:center;">Закрытие:</div>' +
+            dtRowHTML('es-cd', 'es-ct', ymdOf(s.closeDate), hmOf(s.closeDate)) +
+            '<input type="text" id="es-master" class="pay-input" style="text-align:left;padding-left:14px;font-size:18px;" placeholder="Мастер (необязательно)" value="' + escB(s.masterName || '') + '">' +
+            '<div style="font-size:12px;color:#ffb74d;margin:0 0 8px;text-align:center;">После правки смена потребует сверки.</div>' +
+            '<div class="modal-btns" style="margin-top:10px;">' +
+            '<button class="btn btn-grey" onclick="closePayModal()">Отмена</button>' +
+            '<button class="btn btn-green" onclick="esConfirm(' + String(s.id) + ')">Сохранить</button>' +
+            '</div>';
+        $('pay-title').style.display = 'none';
+        $('pay-amount').style.display = 'none';
+        document.querySelector('#pay-modal .type-toggle').style.display = 'none';
+        document.querySelector('#pay-modal .modal-btns').style.display = 'none';
+        $('pay-modal').classList.add('open');
+    }
+
+    function esConfirm(shiftId) {
+        var od = parseDT(($('es-od') || {}).value, ($('es-ot') || {}).value);
+        var cd = parseDT(($('es-cd') || {}).value, ($('es-ct') || {}).value);
+        if (isNaN(od) || isNaN(cd)) { toast('Проверьте дату и время'); return; }
+        if (cd <= od) { toast('Закрытие раньше открытия'); return; }
+        var master = ((($('es-master') || {}).value) || '').trim();
+        closePayModal();
+        postToServer({ action: 'admin_edit_shift', shiftId: String(shiftId), openDate: String(od), closeDate: String(cd), masterName: master }, 'Даты смены обновлены');
     }
 
     // ---------- Расход (модалка в слоте) ----------
