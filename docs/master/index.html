@@ -128,6 +128,81 @@
         .ra-badge { font-size: 14px; font-weight: 700; padding: 4px 10px; border-radius: 6px; background: #333; }
         .radio-autostart.active .ra-badge { background: #ffffff; color: #2e7d32; }
         .ra-url { text-align: left; font-size: 16px !important; font-family: monospace !important; padding-left: 14px !important; }
+
+        /* ===== КОМПАКТ ДЛЯ ТЕЛЕФОНОВ (iPhone 7 A1778: 375×667 и подобные) =====
+           Только уменьшение шрифтов/отступов, логика не тронута. */
+        @media (max-width: 480px) {
+            body { padding: calc(64px + env(safe-area-inset-top)) 12px calc(135px + env(safe-area-inset-bottom)) 12px; }
+            h2 { font-size: 18px; margin-bottom: 12px; }
+
+            .step-indicator { margin-bottom: 15px; }
+            .step-dot { width: 20px; height: 20px; font-size: 10px; }
+
+            .step-panel { padding: 12px; margin-bottom: 12px; }
+            .step-title { font-size: 18px; margin-bottom: 10px; padding-bottom: 6px; }
+
+            .btn-select { padding: 11px 12px; font-size: 18px; margin-bottom: 8px; }
+            .wheels-flex { gap: 6px; }
+
+            .quick-row { gap: 6px; }
+            .quick-row .btn-nav { padding: 10px 6px; font-size: 16px; }
+            .quick-short { font-size: 14px !important; padding: 10px 6px !important; }
+
+            .btn-nav { padding: 11px; font-size: 18px; }
+            .nav-buttons { gap: 6px; margin-top: 12px; }
+
+            .item-row { margin-bottom: 8px; }
+            .item-mid { padding: 8px 10px; }
+            .item-label { font-size: 18px; }
+            .counter-value { font-size: 23px; }
+            .btn-counter { min-height: 42px; font-size: 24px; }
+
+            .addon-row { padding: 12px; }
+            .addon-text { font-size: 17px; }
+
+            .payment-buttons { gap: 6px; margin-top: 12px; padding-top: 10px; }
+            .btn-pay { padding: 11px; font-size: 18px; }
+            .btn-split { font-size: 15px; padding: 11px 6px; }
+
+            .pay-input { height: 40px; font-size: 24px; margin-bottom: 10px; }
+            .btn-share-full { padding: 12px; font-size: 20px; }
+            .modal-content { padding: 15px; }
+            .report-textbox { font-size: 13px; padding: 10px; height: 300px; min-height: 120px; margin-bottom: 10px; }
+            .salary-box { font-size: 15px; padding: 15px; }
+
+            /* нижняя панель: убираем переносы, сжимаем */
+            .fixed-total-bar { padding: 8px 12px; }
+            .queue-strip { font-size: 12px; line-height: 1.5; padding: 2px 0 5px 0; }
+            .total-row { padding-top: 6px; gap: 8px; }
+            .total-title { font-size: 10px; }
+            .total-amount { font-size: 21px; }
+            .bottom-btns { gap: 6px; }
+            .btn-status-queue, .btn-book-bottom, .btn-reset { padding: 10px 12px; font-size: 13px; }
+
+            /* экран записи */
+            .bv-title { font-size: 17px; }
+            .bv-date { font-size: 16px; }
+            .bv-arrow, .bv-calbtn { width: 38px; height: 38px; font-size: 22px; }
+            .bv-calbtn { font-size: 18px; }
+            .bv-today { padding: 9px 10px; font-size: 13px; }
+            .bv-close { padding: 8px 12px; font-size: 15px; }
+            .mc-title { font-size: 15px; }
+            .mc-nav { width: 36px; height: 36px; }
+            .mc-day { font-size: 15px; padding: 6px 0 10px 0; }
+            .slot-row { min-height: 46px; margin-bottom: 6px; }
+            .slot-time { width: 52px; font-size: 17px; }
+            .slot-mid { font-size: 15px; padding: 8px 10px; }
+            .slot-cont .slot-mid { font-size: 13px; }
+            .type-btn { padding: 10px; font-size: 14px; }
+            .btn-ba { padding: 11px; font-size: 17px; margin-top: 8px; }
+
+            /* радио */
+            .radio-station { padding: 10px 12px; }
+            .radio-station .rs-name { font-size: 17px; }
+            .rs-del { font-size: 14px; }
+            .radio-autostart { padding: 10px 12px; }
+            .ra-url { font-size: 14px !important; }
+        }
     </style>
 </head>
 <body>
@@ -160,9 +235,9 @@
     <div style="margin-top: 15px; border-top: 1px dashed #3a3a3a; padding-top: 15px;">
         <div style="font-size: 14px; color: #aaa; margin-bottom: 8px;">Быстрые услуги:</div>
         <div class="quick-row">
-            <button class="btn-nav btn-next" style="background: #00838f;" onclick="selectQuickService('Жгут', 200)">Жгут (200)</button>
+            <button class="btn-nav btn-next" style="background: #00838f;" id="btn-quick-1" onclick="selectQuickService('Жгут', 200)">Жгут (200)</button>
             <button class="btn-nav btn-back quick-short" style="background: #455a64;" onclick="showCustomModal()">Другая услуга</button>
-            <button class="btn-nav btn-next" style="background: #00838f;" onclick="selectQuickService('Жгут со снятием', 400)">Жгут со снятием (400)</button>
+            <button class="btn-nav btn-next" style="background: #00838f;" id="btn-quick-2" onclick="selectQuickService('Жгут со снятием', 400)">Жгут со снятием (400)</button>
         </div>
     </div>
     <div id="quick-service-pay" style="display: none; margin-top: 20px; border-top: 1px solid #2c2c2c; padding-top: 15px;">
@@ -395,6 +470,13 @@
         </div>
     </div>
 </div>
+<div class="modal-overlay" id="price-updated-modal" style="z-index: 270;">
+    <div class="modal-content">
+        <h2 style="margin-bottom: 15px;">Прайс обновлён</h2>
+        <p style="font-size: 16px; color: #ccc; margin-bottom: 20px;">Новый прайс загружен, применится при следующей оплате</p>
+        <button class="btn-nav btn-next" style="width: 100%;" onclick="closePriceUpdatedModal()">ОК</button>
+    </div>
+</div>
 <div class="modal-overlay" id="open-shift-modal">
     <div class="modal-content">
         <h2 style="margin-bottom: 15px;">Кто на смене?</h2>
@@ -418,7 +500,7 @@
 <div class="modal-overlay" id="undo-confirm-modal" style="z-index: 300;">
     <div class="modal-content">
         <h2 style="margin-bottom: 15px;">Отменить оплату?</h2>
-        <p style="font-size: 16px; color: #aaa; margin-bottom: 20px;">Вы уверены, что хотите отменить последнюю проведенную оплату?</p>
+        <p style="font-size: 16px; color: #aaa; margin-bottom: 20px;" id="undo-confirm-text">Вы уверены, что хотите отменить последнюю проведенную оплату?</p>
         <div class="nav-buttons">
             <button class="btn-nav btn-back" onclick="closeUndoConfirmModal()">Нет</button>
             <button class="btn-nav btn-next" style="background: #e53935;" onclick="confirmUndo()">Да</button>
@@ -469,6 +551,77 @@
     };
     var addonPrices = { seal: 50, harness: 200, valve: 50, valve_sensor: 300, patch: 500 };
 
+    // ===== СЕРВЕРНЫЙ ПРАЙС (правит админ; version — флаг обновления) =====
+    // Применяем только когда версия прайса выросла — иначе ничего не делаем.
+    var PRICE_ADDON_LABELS = {
+        seal: 'Герметизация обода', harness: 'Жгут (камерная латка)', valve: 'Замена вентиля',
+        valve_sensor: 'Вентиль под датчик', patch: 'Кордовая латка'
+    };
+
+    function applyServerPrices(p) {
+        if (!p || !p.carTypes) return;
+        var t;
+        for (t in pricing) {
+            // защита: заменяем только полный объект (с пакетами) — частичный не сломает калькулятор
+            if (p.carTypes[t] && p.carTypes[t].packages) { pricing[t] = p.carTypes[t]; }
+        }
+        if (p.addons) {
+            for (var a in addonPrices) {
+                if (p.addons[a] !== undefined) { addonPrices[a] = p.addons[a]; }
+            }
+            for (var a2 in addonPrices) {
+                var row = document.getElementById('row-addon-' + a2);
+                if (row) {
+                    var lbl = row.querySelector('.item-label');
+                    if (lbl) { lbl.innerText = PRICE_ADDON_LABELS[a2] + ' (' + addonPrices[a2] + ')'; }
+                }
+            }
+        }
+        var spRow = document.getElementById('row-sparka');
+        if (spRow && pricing.gazelle && pricing.gazelle.sparka) {
+            var spLbl = spRow.querySelector('.item-label');
+            if (spLbl) { spLbl.innerText = pricing.gazelle.sparka + ' спарка'; }
+        }
+        if (p.quick) {
+            var q1 = document.getElementById('btn-quick-1');
+            if (q1 && p.quick.zhgut !== undefined) {
+                q1.innerText = 'Жгут (' + p.quick.zhgut + ')';
+                q1.setAttribute('onclick', "selectQuickService('Жгут', " + p.quick.zhgut + ")");
+            }
+            var q2 = document.getElementById('btn-quick-2');
+            if (q2 && p.quick.zhgut_snyatie !== undefined) {
+                q2.innerText = 'Жгут со снятием (' + p.quick.zhgut_snyatie + ')';
+                q2.setAttribute('onclick', "selectQuickService('Жгут со снятием', " + p.quick.zhgut_snyatie + ")");
+            }
+        }
+    }
+
+    function appliedPriceVersion() {
+        return parseInt(localStorage.getItem('shino_price_v') || '0', 10) || 0;
+    }
+
+    // Флаг обновления: применяем и показываем окно ТОЛЬКО при новой версии прайса
+    function maybeApplyServerPrices(p) {
+        try {
+            if (!p || !p.version) return;
+            if (Number(p.version) <= appliedPriceVersion()) return;
+            applyServerPrices(p);
+            localStorage.setItem('shino_price_v', String(p.version));
+            localStorage.setItem('shino_price_data', JSON.stringify({ carTypes: p.carTypes, addons: p.addons, quick: p.quick }));
+            document.getElementById('price-updated-modal').style.display = 'flex';
+        } catch (e) {}
+    }
+
+    // Мгновенный старт без сети: последний применённый прайс (без окна)
+    function initCachedPrices() {
+        try {
+            var s = localStorage.getItem('shino_price_data');
+            if (s) { applyServerPrices(JSON.parse(s)); }
+        } catch (e) {}
+    }
+
+    function closePriceUpdatedModal() { document.getElementById('price-updated-modal').style.display = 'none'; }
+
     var state = {
         currentStep: 1, carType: null, jobType: null, gazelleWheels: 4,
         counts: { remove_install: 0, sparka: 0, montage: 0, demontage: 0, balance: 0 },
@@ -490,7 +643,9 @@
     // ===== ОФЛАЙН-ОЧЕРЕДЬ СОБЫТИЙ =====
     var eventQueue = [];
     var syncTimer = null;
-    var lastFetchOk = null;
+    var lastFetchOk = null;      // время последнего успешного fetch (для заголовка)
+    var lastFetchAt = 0;         // то же в мс (проверка актуальности данных)
+    var FETCH_STALE_MS = 90000;  // 3 цикла по 30 сек без свежих данных = данные не актуальны
 
     function loadEventQueue() {
         var saved = localStorage.getItem('shino_pending');
@@ -504,25 +659,40 @@
         saveEventQueue();
     }
     function saveEventQueue() { localStorage.setItem('shino_pending', JSON.stringify(eventQueue)); }
+    function isFetchStale() {
+        if (lastFetchAt === 0) return true;
+        return (Date.now() - lastFetchAt) > FETCH_STALE_MS;
+    }
+    function isDataStale() {
+        return eventQueue.length > 0 || isFetchStale();
+    }
     function updateJournalButton() {
         var btn = document.getElementById('btn-history');
         if (!btn) return;
-        if (eventQueue.length > 0) { btn.classList.add('unsent'); }
+        if (isDataStale()) { btn.classList.add('unsent'); }
         else { btn.classList.remove('unsent'); }
     }
 
     function queueDiagString() {
-        if (eventQueue.length === 0) return '';
-        var counts = {};
         var parts = [];
-        for (var i = 0; i < eventQueue.length; i++) {
-            var t = eventQueue[i].type;
-            counts[t] = (counts[t] || 0) + 1;
+        if (eventQueue.length > 0) {
+            var counts = {};
+            for (var i = 0; i < eventQueue.length; i++) {
+                var t = eventQueue[i].type;
+                counts[t] = (counts[t] || 0) + 1;
+            }
+            var unsent = [];
+            for (var k in counts) {
+                if (counts.hasOwnProperty(k)) unsent.push(k + '×' + counts[k]);
+            }
+            parts.push('не отпр.: ' + unsent.join(', '));
         }
-        for (var k in counts) {
-            if (counts.hasOwnProperty(k)) parts.push(k + '×' + counts[k]);
+        if (lastFetchOk) {
+            parts.push(isFetchStale() ? 'данные от ' + lastFetchOk + ' (устарели)' : 'fetch ' + lastFetchOk);
+        } else {
+            parts.push('fetch не было');
         }
-        return ' [не отпр.: ' + parts.join(', ') + (lastFetchOk ? ' · fetch ' + lastFetchOk : ' · fetch не было') + ']';
+        return ' [' + parts.join(' · ') + ']';
     }
 
     function pushEvent(ev) {
@@ -538,8 +708,9 @@
             if (document.visibilityState !== 'visible') return;
             if (eventQueue.length > 0) { resendPending(); }
             else { fetchJournalFromServer(); }
+            updateJournalButton();
             renderQueueStrip();
-        }, 60000);
+        }, 30000);
     }
 
     // ===== ТРАНСПОРТ iOS =====
@@ -1508,21 +1679,72 @@
     }
     function closeReportModal() { document.getElementById('report-modal').style.display = 'none'; }
 
+    // ===== ОТМЕНА ПОСЛЕДНЕЙ ОПЛАТЫ (сплит = пара) =====
+    // Сплит записывается как ДВЕ транзакции (нал + перевод) в один момент.
+    // Раньше отмена снимала только последнюю половину (перевод), а наличные
+    // оставались висеть в кассе. Теперь отменяем ОБОИЕ. Пара опознаётся
+    // по метке gid (сплит, записанный локально) либо — после синхронизации
+    // с сервером, когда метка теряется — по соседству в списке: предыдущая
+    // транзакция другого типа оплаты с разницей времени не больше 2 секунд
+    // (половинки сплита создаются подряд, с разницей в миллисекунды;
+    // два отдельных платежа через калькулятор и модалки за 2 секунды
+    // не провести).
+    function txLabel(t) {
+        return (t.type === 'cash' ? 'НАЛИЧНЫМИ' : 'ПЕРЕВОДОМ') + ' ' + t.amount + ' руб';
+    }
+
+    function undoTargets() {
+        var list = shift.transactions;
+        if (list.length === 0) return [];
+        var last = list[list.length - 1];
+        var partner = null;
+        var i;
+        if (last.gid) {
+            for (i = list.length - 2; i >= 0; i--) {
+                if (list[i].gid && String(list[i].gid) === String(last.gid)) { partner = list[i]; break; }
+            }
+        } else if (list.length >= 2) {
+            var prev = list[list.length - 2];
+            // !prev.gid: сосед помечен меткой ДРУГОГО сплита — значит,
+            // последняя транзакция к этому сплиту не относится
+            if (!prev.gid
+                && String(prev.type) !== String(last.type)
+                && Math.abs((Number(last.time) || 0) - (Number(prev.time) || 0)) <= 2000) {
+                partner = prev;
+            }
+        }
+        // партнёр записан раньше — он и показывается первым
+        return partner ? [partner, last] : [last];
+    }
+
     function showUndoConfirmModal() {
         if (!shift.isOpen) { alert('Смена закрыта! Отмена невозможна.'); return; }
         if (shift.transactions.length === 0) { alert('Нет оплат для отмены.'); return; }
+        var targets = undoTargets();
+        var parts = [];
+        for (var i = 0; i < targets.length; i++) { parts.push(txLabel(targets[i])); }
+        document.getElementById('undo-confirm-text').innerHTML =
+            'Будет отменена оплата:<br><b style="font-size:20px;color:#ffffff;">' + parts.join(' + ') + '</b><br><br>Вы уверены?';
         document.getElementById('undo-confirm-modal').style.display = 'flex';
     }
     function closeUndoConfirmModal() { document.getElementById('undo-confirm-modal').style.display = 'none'; }
 
     function confirmUndo() {
         closeUndoConfirmModal();
-        var lastTrans = shift.transactions.pop();
-        pushEvent({ type: 'undo', id: lastTrans.id });
+        var targets = undoTargets();
+        if (targets.length === 0) return;
+        var rm = {};
+        for (var i = 0; i < targets.length; i++) { rm[String(targets[i].id)] = true; }
+        shift.transactions = shift.transactions.filter(function(t) { return !rm[String(t.id)]; });
+        for (var j = 0; j < targets.length; j++) {
+            pushEvent({ type: 'undo', id: targets[j].id });
+        }
         recalcLocalTotals();
         saveShift();
         updateShiftUI();
-        alert('Последняя оплата успешно отменена!');
+        var parts = [];
+        for (var k = 0; k < targets.length; k++) { parts.push(txLabel(targets[k])); }
+        alert('Отменено: ' + parts.join(' + '));
         closeReportModal();
         resendPending();
     }
@@ -1556,7 +1778,10 @@
         try {
             var db = JSON.parse(jsonStr);
             lastFetchOk = new Date().toLocaleTimeString('ru-RU');
+            lastFetchAt = Date.now();
             confirmEvents(db);
+            maybeApplyServerPrices(db.prices);
+            updateJournalButton();
             mergeSchedule(db);
             if (eventQueue.length === 0 && db.live && db.live.isOpen && shift.isOpen
                 && shift.masterName === db.live.masterName
@@ -1581,7 +1806,7 @@
         } catch(e) {}
     };
 
-    function addTransactionToShift(type, amount, masterShare, bossShare) {
+    function addTransactionToShift(type, amount, masterShare, bossShare, gid) {
         txCounter++;
         var tId = String(new Date().getTime()) + '-' + txCounter;
         var transaction = {
@@ -1589,6 +1814,7 @@
             masterShare: masterShare, bossShare: bossShare,
             time: new Date().getTime()
         };
+        if (gid) { transaction.gid = gid; } // метка сплит-пары (только локально)
         shift.transactions.push(transaction);
         recalcLocalTotals();
         saveShift();
@@ -1725,11 +1951,12 @@
             masterShare = state.masterShare;
             bossShare = state.bossShare;
         }
+        var gid = 'sp' + new Date().getTime(); // метка пары: отмена снимет обе половины
         if (cash > 0) {
-            addTransactionToShift('cash', cash, Math.round(masterShare * (cash / splitModalTotal)), Math.round(bossShare * (cash / splitModalTotal)));
+            addTransactionToShift('cash', cash, Math.round(masterShare * (cash / splitModalTotal)), Math.round(bossShare * (cash / splitModalTotal)), gid);
         }
         if (transfer > 0) {
-            addTransactionToShift('transfer', transfer, Math.round(masterShare * (transfer / splitModalTotal)), Math.round(bossShare * (transfer / splitModalTotal)));
+            addTransactionToShift('transfer', transfer, Math.round(masterShare * (transfer / splitModalTotal)), Math.round(bossShare * (transfer / splitModalTotal)), gid);
         }
         closeSplitModal();
         resetAll();
@@ -1913,6 +2140,7 @@
     loadShift();
     loadEventQueue();
     loadScheduleLocal();
+    initCachedPrices();
     updateJournalButton();
     renderQueueStrip();
     ensureSyncTimer();
