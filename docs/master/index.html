@@ -130,8 +130,9 @@
         .ra-url { text-align: left; font-size: 16px !important; font-family: monospace !important; padding-left: 14px !important; }
 
         /* ===== КОМПАКТ ДЛЯ ТЕЛЕФОНОВ (iPhone 7 A1778: 375×667 и подобные) =====
-           Только уменьшение шрифтов/отступов, логика не тронута. */
-        @media (max-width: 480px) {
+           Только уменьшение шрифтов/отступов, логика не тронута.
+           Условие: узкий экран (портрет телефона) ИЛИ низкий (ландшафт телефона). */
+        @media (max-width: 480px), (max-height: 420px) {
             body { padding: calc(64px + env(safe-area-inset-top)) 12px calc(135px + env(safe-area-inset-bottom)) 12px; }
             h2 { font-size: 18px; margin-bottom: 12px; }
 
@@ -202,6 +203,44 @@
             .rs-del { font-size: 14px; }
             .radio-autostart { padding: 10px 12px; }
             .ra-url { font-size: 14px !important; }
+        }
+
+        /* ===== ЛАНДШАФТ ТЕЛЕФОНА (667×375 и подобные): ещё теснее по высоте =====
+           Включается на низких экранах поверх компактного блока. */
+        @media (max-height: 420px) {
+            body { padding-top: calc(60px + env(safe-area-inset-top)); padding-bottom: calc(112px + env(safe-area-inset-bottom)); }
+            h2 { margin-bottom: 8px; }
+            .step-indicator { margin-bottom: 10px; }
+            .step-panel { padding: 10px 12px; margin-bottom: 10px; }
+            .step-title { margin-bottom: 8px; padding-bottom: 5px; }
+
+            .btn-select { padding: 9px 12px; margin-bottom: 6px; }
+            .quick-row .btn-nav { padding: 8px 6px; }
+            .quick-short { padding: 8px 6px !important; }
+            .btn-nav { padding: 9px; }
+            .nav-buttons { margin-top: 8px; }
+
+            .item-row { margin-bottom: 6px; }
+            .item-mid { padding: 6px 10px; }
+            .btn-counter { min-height: 36px; font-size: 22px; }
+            .addon-row { padding: 9px 12px; }
+
+            .payment-buttons { margin-top: 8px; padding-top: 8px; }
+            .btn-pay { padding: 9px; }
+
+            /* нижняя панель — минимально возможная */
+            .fixed-total-bar { padding: 5px 12px; }
+            .queue-strip { font-size: 11px; line-height: 1.4; padding: 1px 0 3px 0; }
+            .total-row { padding-top: 3px; gap: 6px; }
+            .total-amount { font-size: 19px; }
+            .btn-status-queue, .btn-book-bottom, .btn-reset { padding: 7px 10px; font-size: 12px; }
+
+            /* модалки */
+            .modal-content { padding: 12px; }
+            .report-textbox { height: 200px; min-height: 100px; padding: 8px; margin-bottom: 8px; }
+            .salary-box { padding: 10px; font-size: 14px; margin-bottom: 10px; }
+            .btn-share-full { padding: 10px; font-size: 17px; margin-top: 8px; }
+            .pay-input { height: 36px; font-size: 22px; margin-bottom: 8px; }
         }
     </style>
 </head>
