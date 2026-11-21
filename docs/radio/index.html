@@ -50,14 +50,6 @@
 
         .btn-add { width: 100%; padding: 16px; font-size: 19px; font-weight: 600; border: 1px dashed #4a4a4a; border-radius: 10px; cursor: pointer; background: #1a1a1a; color: #e0e0e0; margin-top: 4px; }
 
-        /* ===== Автостарт ===== */
-        .autostart { display: flex; justify-content: space-between; align-items: center; background: #1a1a1a; border-radius: 10px; margin-top: 14px; padding: 14px 16px; cursor: pointer; border: 1px dashed #3a3a3a; }
-        .ra-text { font-size: 15px; color: #aaaaaa; text-align: left; line-height: 1.4; }
-        .autostart.active { background: #2e7d32; border-color: #2e7d32; }
-        .autostart.active .ra-text { color: #ffffff; }
-        .ra-badge { font-size: 14px; font-weight: 700; padding: 4px 10px; border-radius: 6px; background: #333; color: #ffffff; flex-shrink: 0; }
-        .autostart.active .ra-badge { background: #ffffff; color: #2e7d32; }
-
         /* ===== Модалка добавления ===== */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.85); z-index: 200; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
         .modal-overlay.open { display: flex; }
@@ -84,7 +76,6 @@
             .station { padding: 12px 14px; }
             .st-name { font-size: 17px; }
             .btn-add { padding: 13px; font-size: 16px; }
-            .ra-text { font-size: 14px; }
             .pay-input { height: 42px; font-size: 17px; }
             .pay-input.url { font-size: 13px; }
         }
@@ -98,7 +89,6 @@
             .btn-play { padding: 10px; font-size: 16px; margin-top: 8px; }
             .station { padding: 9px 12px; margin-bottom: 6px; }
             .st-name { font-size: 15px; }
-            .autostart { padding: 10px 12px; margin-top: 10px; }
             .btn-add { padding: 10px; font-size: 14px; }
         }
     </style>
@@ -120,11 +110,8 @@
     <div id="station-list"></div>
     <button class="btn-add" onclick="showAddForm()">+ Добавить станцию</button>
 
-    <!-- Автостарт -->
-    <div class="autostart" id="ra-row" onclick="toggleAutostart()">
-        <div class="ra-text">Автозапуск при старте<br><span style="font-size: 12px; opacity: 0.8;">включать последнюю станцию при открытии приложения</span></div>
-        <div class="ra-badge" id="ra-badge">ВЫКЛ</div>
-    </div>
+    <!-- Маркер версии: если строка видна — телефон получил обновлённые файлы -->
+    <div style="margin-top: 16px; text-align: center; font-size: 11px; color: #555555;">обновление от 22.11.2026 · 30 станций · без автозапуска</div>
 
     <!-- Модалка добавления станции -->
     <div class="modal-overlay" id="add-modal">
@@ -143,13 +130,20 @@
     <audio id="radio-audio" preload="none"></audio>
 
 <script>
-    // ===== Те же ключи localStorage, что в мастере; станции — все, что мы нашли =====
-    // (если приложение лежит на одном хостинге с мастером — СВОИ станции общие)
-    // Потоки проверены 21.11.2026: мёртвые отброшены (Монте-Карло 64, rusongs/101.ru по https)
+    // ===== СВОИ (добавленные пользователем) станции хранятся в localStorage под тем же
+    // ключом, что в мастере — на одном хостинге они общие. Потоки проверены 22.11.2026.
+    // Известные ограничения (на iPhone не играют, на компьютере/Android играют):
+    //   • Маруся ФМ — серверы radio-holding отдают поток только с Referer, который
+    //     Safari для <audio> не шлёт (анти-хотлинк станции); основной URL — прямое
+    //     зеркало без редиректа + зеркала в фолбэках
+    //   • TOP 100 — сервер отдаёт AAC с неверным Content-Type (audio/mp4),
+    //     Safari/AVFoundation такой формат отвергает
+    //   • Серебряный дождь — поток существует только по http:// (IP-адрес): Safari
+    //     такой проигрывает, Chrome на компьютере может блокировать как смешанный контент
     var RADIO_STATIONS = [
         { id: 'st_rusongs',    name: 'Русские песни',    url: 'http://listen.rusongs.ru/ru-mp3-128', fallbacks: [] },
         { id: 'st_shanson',    name: 'Шансон',           url: 'https://chanson.hostingradio.ru:8041/chanson128.mp3', fallbacks: ['https://chanson.hostingradio.ru:8041/chanson64.mp3', 'https://chanson.hostingradio.ru:8041/chanson256.mp3'] },
-        { id: 'st_marusya',    name: 'Маруся ФМ',        url: 'https://radio-holding.ru:9433/marusya_default', fallbacks: ['https://msk11.radio-holding.ru/marusya_default'] },
+        { id: 'st_marusya',    name: 'Маруся ФМ',        url: 'https://msk11.radio-holding.ru/marusya_default', fallbacks: ['https://msk15.radio-holding.ru/marusya_default', 'https://msk17.radio-holding.ru/marusya_default', 'https://radio-holding.ru:9433/marusya_default'] },
         { id: 'st_avtoradio',  name: 'Авторадио',        url: 'https://hls-01-gpm.hostingradio.ru/avtoradio495/playlist.m3u8', fallbacks: [] },
         { id: 'st_europaplus', name: 'Европа Плюс',      url: 'https://hls-02-europaplus.emgsound.ru/11/playlist.m3u8', fallbacks: ['https://hls-02-europaplus.emgsound.ru/11/192/playlist.m3u8'] },
         { id: 'st_ruswave',    name: 'Русская Волна',    url: 'https://rp.amgradio.ru/ruwave.aacp', fallbacks: [] },
@@ -158,9 +152,27 @@
         { id: 'st_newradio',   name: 'Новое радио 98.4', url: 'https://stream.newradio.ru/novoe96.aacp', fallbacks: [] },
         { id: 'st_energy',     name: 'Радио ЭНЕРДЖИ',    url: 'https://hls-01-gpm.hostingradio.ru/energyfm495/playlist.m3u8', fallbacks: [] },
         { id: 'st_humor',      name: 'Юмор FM',          url: 'https://hls-01-gpm.hostingradio.ru/humorfm495/playlist.m3u8', fallbacks: ['http://pub0101.101.ru:8000/stream/air/aac/64/102'] },
-        { id: 'st_top100',     name: 'TOP 100',          url: 'https://ic1.radiosignal.one/top100', fallbacks: ['https://ic2.radiosignal.one/top100'] }
+        { id: 'st_rusradio',   name: 'Русское Радио',    url: 'https://rusradio.hostingradio.ru/rusradio128.mp3', fallbacks: ['https://rusradio.hostingradio.ru/rusradio96.aacp'] },
+        { id: 'st_top100',     name: 'TOP 100',          url: 'https://ic1.radiosignal.one/top100', fallbacks: ['https://ic2.radiosignal.one/top100'] },
+        { id: 'st_dfm',        name: 'ДФМ',              url: 'https://dfm.hostingradio.ru/dfm128.mp3', fallbacks: ['https://dfm.hostingradio.ru/dfm96.aacp'] },
+        { id: 'st_hitfm',      name: 'Хит FM',           url: 'https://hitfm.hostingradio.ru/hitfm128.mp3', fallbacks: ['https://hitfm.hostingradio.ru/hitfm96.aacp'] },
+        { id: 'st_maximum',    name: 'Радио Максимум',   url: 'https://maximum.hostingradio.ru/maximum128.mp3', fallbacks: ['https://maximum.hostingradio.ru/maximum96.aacp'] },
+        { id: 'st_radio7',     name: 'Радио 7',          url: 'https://radio7.hostingradio.ru:8040/radio7128.mp3', fallbacks: ['https://radio7.hostingradio.ru:8040/radio764.aacp'] },
+        { id: 'st_romantika',  name: 'Радио Романтика',  url: 'https://hls-01-gpm.hostingradio.ru/romantika495/playlist.m3u8', fallbacks: [] },
+        { id: 'st_retro70',    name: 'Ретро FM 70-е',    url: 'https://retro70.hostingradio.ru:8025/retro70-128.mp3', fallbacks: [] },
+        { id: 'st_retro80',    name: 'Ретро FM 80-е',    url: 'https://retro80.hostingradio.ru:8025/retro80-128.mp3', fallbacks: [] },
+        { id: 'st_retro90',    name: 'Ретро FM 90-е',    url: 'https://retro90.hostingradio.ru:8025/retro90-128.mp3', fallbacks: [] },
+        { id: 'st_dorognoe',   name: 'Дорожное радио',   url: 'https://emgregion.hostingradio.ru:8064/moscow.dorognoe.mp3', fallbacks: [] },
+        { id: 'st_nashe',      name: 'Наше радио',       url: 'https://nashe1.hostingradio.ru/nashespb128.mp3', fallbacks: [] },
+        { id: 'st_vesti',      name: 'Вести FM',         url: 'https://icecast-vgtrk.cdnvideo.ru/vestifm', fallbacks: ['https://icecast-vgtrk.cdnvideo.ru/vestifm_aac_64kbps'] },
+        { id: 'st_mayak',      name: 'Маяк',             url: 'https://icecast-vgtrk.cdnvideo.ru/mayakfm', fallbacks: ['https://icecast-vgtrk.cdnvideo.ru/mayakfm_mp3_128kbps'] },
+        { id: 'st_zvezda',     name: 'Радио Звезда',     url: 'https://zvezda-radio128.mediacdn.ru/radio/zvezda/zvezda_128', fallbacks: ['https://icecast-zvezda.mediacdn.ru/radio/zvezda/zvezda_128'] },
+        { id: 'st_silver',     name: 'Серебряный дождь', url: 'http://213.59.4.27:8000/silver128.mp3', fallbacks: [] },
+        { id: 'st_record',     name: 'Радио Рекорд',     url: 'https://radiorecord.hostingradio.ru/rr_main96.aacp', fallbacks: ['https://radiorecord.hostingradio.ru/rr_main64.aacp'] },
+        { id: 'st_rr90',       name: 'Рекорд 90-х',      url: 'https://rr-90.hostingradio.ru/rr9096.aacp', fallbacks: [] },
+        { id: 'st_rr00',       name: 'Рекорд 2000-х',    url: 'https://rr-00.hostingradio.ru/rr0096.aacp', fallbacks: [] }
     ];
-    var RADIO_KEYS = { custom: 'shino_radio_custom', autostart: 'shino_radio_autostart', last: 'shino_radio_last' };
+    var RADIO_KEYS = { custom: 'shino_radio_custom' };
 
     var radioState = { status: 'stopped', currentId: null };
 
@@ -176,9 +188,6 @@
         for (var i = 0; i < all.length; i++) { if (all[i].id === id) return all[i]; }
         return null;
     }
-    function getRadioAutostart() { return localStorage.getItem(RADIO_KEYS.autostart) === '1'; }
-    function setRadioAutostart(v) { localStorage.setItem(RADIO_KEYS.autostart, v ? '1' : '0'); }
-
     // ===== Плеер (механика как в мастере: фолбэки + авто-повтор при обрыве) =====
     var audioEl = document.getElementById('radio-audio');
     var radioFallbacks = null;
@@ -234,7 +243,6 @@
     function playStation(st) {
         radioState.currentId = st.id;
         radioState.status = 'connecting';
-        localStorage.setItem(RADIO_KEYS.last, st.id);
         radioUrl = st.url;
         radioFallbacks = st.fallbacks || [];
         radioRetries = 0;
@@ -251,7 +259,6 @@
         audioEl.load();
         radioState.currentId = null;
         radioState.status = 'stopped';
-        localStorage.removeItem(RADIO_KEYS.last);
         updateUI();
     }
 
@@ -387,44 +394,11 @@
         updateUI();
     }
 
-    // ===== Автостарт =====
-    function toggleAutostart() {
-        setRadioAutostart(!getRadioAutostart());
-        syncAutostartUI();
-    }
-    function syncAutostartUI() {
-        var row = document.getElementById('ra-row');
-        var badge = document.getElementById('ra-badge');
-        if (getRadioAutostart()) {
-            row.classList.add('active');
-            badge.textContent = 'ВКЛ';
-        } else {
-            row.classList.remove('active');
-            badge.textContent = 'ВЫКЛ';
-        }
-    }
-
-    // ===== Старт =====
+    // ===== Старт (без автозапуска: радио включается только тапом по станции) =====
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').catch(function() {});
     }
     updateUI();
-    syncAutostartUI();
-
-    // Автозапуск последней станции (по правилам Safari может потребоваться тап;
-    // если не заиграло — повтор каждые 10 сек, как в мастере)
-    if (getRadioAutostart()) {
-        var lastId = localStorage.getItem(RADIO_KEYS.last);
-        if (lastId && findStationById(lastId)) {
-            var lastSt = findStationById(lastId);
-            radioState.currentId = lastId;
-            radioState.status = 'connecting';
-            radioUrl = lastSt.url;
-            radioFallbacks = lastSt.fallbacks || [];
-            updateUI();
-            setRadioSource(lastSt.url);
-        }
-    }
 </script>
 </body>
 </html>
