@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Радио</title>
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Радио">
+    <link rel="apple-touch-icon" href="icon-180.png">
+    <meta name="theme-color" content="#121212">
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: #121212; color: #e0e0e0; padding: calc(16px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom)); width: 100%; max-width: 640px; margin: 0 auto; }
+        h1 { text-align: center; font-size: 26px; color: #ffffff; font-weight: 700; margin-bottom: 4px; }
+        .sub { text-align: center; font-size: 13px; color: #777777; margin-bottom: 18px; }
+
+        /* ===== Блок «сейчас играет» ===== */
+        .now-box { background-color: #1e1e1e; border-radius: 14px; padding: 22px 16px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); margin-bottom: 18px; }
+        .eq { display: flex; justify-content: center; align-items: flex-end; gap: 5px; height: 40px; margin-bottom: 14px; }
+        .eq span { width: 7px; border-radius: 3px; background-color: #4caf50; height: 8px; }
+        .eq.on span { animation: eqbar 0.9s ease-in-out infinite; }
+        .eq.on span:nth-child(1) { animation-delay: 0s; }
+        .eq.on span:nth-child(2) { animation-delay: 0.25s; }
+        .eq.on span:nth-child(3) { animation-delay: 0.1s; }
+        .eq.on span:nth-child(4) { animation-delay: 0.4s; }
+        .eq.on span:nth-child(5) { animation-delay: 0.15s; }
+        @keyframes eqbar { 0%, 100% { height: 8px; } 50% { height: 38px; } }
+        .now-name { font-size: 26px; font-weight: 700; color: #ffffff; line-height: 1.25; word-break: break-word; }
+        .now-status { font-size: 14px; color: #777777; margin-top: 6px; min-height: 18px; }
+        .now-status.playing { color: #81c784; }
+        .now-status.connecting { color: #ffb74d; }
+        .btn-play { margin-top: 16px; width: 100%; padding: 18px; font-size: 22px; font-weight: 700; border: none; border-radius: 10px; cursor: pointer; background-color: #2e7d32; color: #ffffff; }
+        .btn-play.stop { background-color: #e53935; }
+        .btn-play:disabled { background-color: #444444; color: #999999; }
+
+        /* ===== Список станций ===== */
+        .section-title { font-size: 15px; font-weight: 700; color: #aaaaaa; text-transform: uppercase; letter-spacing: 1px; margin: 4px 0 10px; }
+        .station { display: flex; justify-content: space-between; align-items: center; background: #252525; border-radius: 10px; margin-bottom: 8px; padding: 16px; cursor: pointer; border: 1px solid #3a3a3a; }
+        .station:active { background: #2e2e2e; }
+        .station.playing { background: #4caf50; color: #ffffff; border-color: #4caf50; }
+        .st-name { font-size: 20px; font-weight: 600; text-align: left; word-break: break-word; }
+        .st-right { display: flex; align-items: center; flex-shrink: 0; margin-left: 10px; }
+        .st-status { font-size: 13px; font-weight: 400; opacity: 0.85; }
+        .st-del { font-size: 17px; font-weight: 700; color: #e53935; padding: 6px 10px; cursor: pointer; margin-left: 4px; }
+        .station.playing .st-del { color: #ffffff; }
+
+        .btn-add { width: 100%; padding: 16px; font-size: 19px; font-weight: 600; border: 1px dashed #4a4a4a; border-radius: 10px; cursor: pointer; background: #1a1a1a; color: #e0e0e0; margin-top: 4px; }
+
+        /* ===== Автостарт ===== */
+        .autostart { display: flex; justify-content: space-between; align-items: center; background: #1a1a1a; border-radius: 10px; margin-top: 14px; padding: 14px 16px; cursor: pointer; border: 1px dashed #3a3a3a; }
+        .ra-text { font-size: 15px; color: #aaaaaa; text-align: left; line-height: 1.4; }
+        .autostart.active { background: #2e7d32; border-color: #2e7d32; }
+        .autostart.active .ra-text { color: #ffffff; }
+        .ra-badge { font-size: 14px; font-weight: 700; padding: 4px 10px; border-radius: 6px; background: #333; color: #ffffff; flex-shrink: 0; }
+        .autostart.active .ra-badge { background: #ffffff; color: #2e7d32; }
+
+        /* ===== Модалка добавления ===== */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.85); z-index: 200; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .modal-overlay.open { display: flex; }
+        .modal-content { background-color: #1e1e1e; border-radius: 12px; padding: 20px; max-width: 460px; width: 100%; }
+        .modal-title { font-size: 20px; font-weight: 700; color: #ffffff; margin-bottom: 14px; text-align: center; }
+        .pay-input { width: 100%; height: 46px; background-color: #333333; border: 1px solid #444444; color: #ffffff; border-radius: 8px; text-align: left; padding-left: 14px; font-size: 19px; margin-bottom: 12px; }
+        .pay-input.url { font-family: monospace; font-size: 15px; }
+        .hint { font-size: 13px; color: #888888; text-align: left; margin-bottom: 14px; line-height: 1.5; }
+        .modal-btns { display: flex; gap: 10px; }
+        .btn { border: none; border-radius: 8px; font-weight: 600; font-size: 17px; padding: 14px; cursor: pointer; flex: 1; }
+        .btn-grey { background-color: #333333; color: #e0e0e0; }
+        .btn-green { background-color: #2e7d32; color: #ffffff; }
+
+        /* ===== КОМПАКТ: телефоны (портрет ≤480px) ===== */
+        @media (max-width: 480px), (max-height: 420px) {
+            body { padding-left: 12px; padding-right: 12px; }
+            h1 { font-size: 21px; }
+            .now-box { padding: 16px 12px; }
+            .eq { height: 30px; margin-bottom: 10px; }
+            @keyframes eqbar { 0%, 100% { height: 6px; } 50% { height: 28px; } }
+            .now-name { font-size: 21px; }
+            .now-status { font-size: 13px; }
+            .btn-play { padding: 14px; font-size: 19px; margin-top: 12px; }
+            .station { padding: 12px 14px; }
+            .st-name { font-size: 17px; }
+            .btn-add { padding: 13px; font-size: 16px; }
+            .ra-text { font-size: 14px; }
+            .pay-input { height: 42px; font-size: 17px; }
+            .pay-input.url { font-size: 13px; }
+        }
+
+        /* ===== ЛАНДШАФТ телефона (высота ≤420px) ===== */
+        @media (max-height: 420px) {
+            .now-box { padding: 10px 12px; margin-bottom: 10px; }
+            .eq { display: none; }
+            .now-name { font-size: 18px; }
+            .now-status { font-size: 12px; margin-top: 3px; }
+            .btn-play { padding: 10px; font-size: 16px; margin-top: 8px; }
+            .station { padding: 9px 12px; margin-bottom: 6px; }
+            .st-name { font-size: 15px; }
+            .autostart { padding: 10px 12px; margin-top: 10px; }
+            .btn-add { padding: 10px; font-size: 14px; }
+        }
+    </style>
+</head>
+<body>
+    <h1>📻 Радио</h1>
+    <div class="sub">включите станцию одним тапом</div>
+
+    <!-- Сейчас играет -->
+    <div class="now-box">
+        <div class="eq" id="eq"><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="now-name" id="now-name">Выберите станцию</div>
+        <div class="now-status" id="now-status">радио выключено</div>
+        <button class="btn-play" id="btn-play" onclick="toggleCurrent()" disabled>▶ Включить</button>
+    </div>
+
+    <!-- Список станций -->
+    <div class="section-title">Станции</div>
+    <div id="station-list"></div>
+    <button class="btn-add" onclick="showAddForm()">+ Добавить станцию</button>
+
+    <!-- Автостарт -->
+    <div class="autostart" id="ra-row" onclick="toggleAutostart()">
+        <div class="ra-text">Автозапуск при старте<br><span style="font-size: 12px; opacity: 0.8;">включать последнюю станцию при открытии приложения</span></div>
+        <div class="ra-badge" id="ra-badge">ВЫКЛ</div>
+    </div>
+
+    <!-- Модалка добавления станции -->
+    <div class="modal-overlay" id="add-modal">
+        <div class="modal-content">
+            <div class="modal-title">Новая станция</div>
+            <input type="text" id="ra-name-input" class="pay-input" placeholder="Название станции">
+            <input type="text" id="ra-url-input" class="pay-input url" placeholder="Ссылка на поток (http://...)">
+            <p class="hint">Поток можно найти на radiopotok.ru (кнопка Play → F12 → Network) или radio-browser.info. Проверьте ссылку в браузере: должна предлагать «проиграть или скачать».</p>
+            <div class="modal-btns">
+                <button class="btn btn-grey" onclick="closeAddForm()">Отмена</button>
+                <button class="btn btn-green" onclick="confirmAdd()">Добавить</button>
+            </div>
+        </div>
+    </div>
+
+    <audio id="radio-audio" preload="none"></audio>
+
+<script>
+    // ===== Те же дефолтные станции и ТЕ ЖЕ ключи localStorage, что в мастере =====
+    // (если приложение лежит на одном хостинге с мастером — список станций общий)
+    var RADIO_STATIONS = [
+        { id: 'st_rusongs',    name: 'Русские песни',    url: 'http://listen.rusongs.ru/ru-mp3-128', fallbacks: [] },
+        { id: 'st_tnt',        name: 'ТНТ MUSIC RADIO',  url: 'http://tntradio.hostingradio.ru:8027/tntradio128.mp3', fallbacks: [] },
+        { id: 'st_montecarlo', name: 'Монте-Карло',      url: 'http://montecarlo.hostingradio.ru/montecarlo128.mp3', fallbacks: ['http://montecarlo.hostingradio.ru/montecarlo64.mp3', 'http://montecarlo.hostingradio.ru/montecarlo96.aacp'] },
+        { id: 'st_newradio',   name: 'Новое радио 98.4', url: 'http://stream.newradio.ru/novoe96.aacp', fallbacks: [] },
+        { id: 'st_humor',      name: 'Юмор FM',          url: 'http://pub0101.101.ru:8000/stream/air/aac/64/102', fallbacks: [] }
+    ];
+    var RADIO_KEYS = { custom: 'shino_radio_custom', autostart: 'shino_radio_autostart', last: 'shino_radio_last' };
+
+    var radioState = { status: 'stopped', currentId: null };
+
+    function getCustomStations() {
+        var s = null;
+        try { s = JSON.parse(localStorage.getItem(RADIO_KEYS.custom)); } catch (e) {}
+        return (s && s.length) ? s : [];
+    }
+    function saveCustomStations(arr) { localStorage.setItem(RADIO_KEYS.custom, JSON.stringify(arr)); }
+    function allStations() { return RADIO_STATIONS.concat(getCustomStations()); }
+    function findStationById(id) {
+        var all = allStations();
+        for (var i = 0; i < all.length; i++) { if (all[i].id === id) return all[i]; }
+        return null;
+    }
+    function getRadioAutostart() { return localStorage.getItem(RADIO_KEYS.autostart) === '1'; }
+    function setRadioAutostart(v) { localStorage.setItem(RADIO_KEYS.autostart, v ? '1' : '0'); }
+
+    // ===== Плеер (механика как в мастере: фолбэки + авто-повтор при обрыве) =====
+    var audioEl = document.getElementById('radio-audio');
+    var radioFallbacks = null;
+    var radioUrl = null;
+    var radioRetries = 0;
+    var RADIO_MAX_RETRIES = 60;
+    var RADIO_RETRY_MS = 10000;
+    var radioRetryTimer = null;
+
+    audioEl.addEventListener('playing', function() {
+        radioRetries = 0;
+        radioState.status = 'playing';
+        updateUI();
+    });
+    audioEl.addEventListener('error', function() { scheduleRadioRetry(true); });
+
+    function setRadioSource(url) {
+        radioUrl = url;
+        audioEl.src = url;
+        audioEl.load();
+        // play() возвращает Promise; на iOS он резолвится только после тапа — тап уже был (кнопка станции)
+        var p = audioEl.play();
+        if (p && p.catch) { p.catch(function() { scheduleRadioRetry(true); }); }
+    }
+
+    function nextFallbackUrl() {
+        if (!radioFallbacks || radioFallbacks.length === 0 || !radioUrl) return radioUrl;
+        var isMain = true;
+        for (var i = 0; i < radioFallbacks.length; i++) { if (radioUrl === radioFallbacks[i]) { isMain = false; break; } }
+        if (isMain) return radioFallbacks[0];
+        for (var j = 0; j < radioFallbacks.length; j++) {
+            if (radioUrl === radioFallbacks[j]) return radioFallbacks[(j + 1) % radioFallbacks.length];
+        }
+        return radioFallbacks[0];
+    }
+
+    function scheduleRadioRetry(useFallback) {
+        if (useFallback) {
+            var nu = nextFallbackUrl();
+            if (nu) radioUrl = nu;
+        }
+        radioState.status = 'stopped';
+        updateUI();
+        if (radioRetries >= RADIO_MAX_RETRIES) return;
+        radioRetries++;
+        clearTimeout(radioRetryTimer);
+        radioRetryTimer = setTimeout(function() {
+            if (radioState.status !== 'stopped' || !radioUrl) return;
+            setRadioSource(radioUrl);
+        }, RADIO_RETRY_MS);
+    }
+
+    function playStation(st) {
+        radioState.currentId = st.id;
+        radioState.status = 'connecting';
+        localStorage.setItem(RADIO_KEYS.last, st.id);
+        radioUrl = st.url;
+        radioFallbacks = st.fallbacks || [];
+        radioRetries = 0;
+        clearTimeout(radioRetryTimer);
+        updateUI();
+        setRadioSource(st.url);
+    }
+
+    function stopStation() {
+        clearTimeout(radioRetryTimer);
+        radioRetries = 0;
+        audioEl.pause();
+        audioEl.removeAttribute('src');
+        audioEl.load();
+        radioState.currentId = null;
+        radioState.status = 'stopped';
+        localStorage.removeItem(RADIO_KEYS.last);
+        updateUI();
+    }
+
+    function toggleCurrent() {
+        var st = radioState.currentId ? findStationById(radioState.currentId) : null;
+        if (st && radioState.status === 'playing') {
+            audioEl.pause();
+            radioState.status = 'paused';
+            updateUI();
+        } else if (st) {
+            playStation(st);
+        }
+    }
+
+    // ===== Интерфейс =====
+    function updateUI() {
+        var st = radioState.currentId ? findStationById(radioState.currentId) : null;
+        var nameEl = document.getElementById('now-name');
+        var statusEl = document.getElementById('now-status');
+        var btn = document.getElementById('btn-play');
+        var eq = document.getElementById('eq');
+
+        if (radioState.status === 'playing' && st) {
+            nameEl.textContent = st.name;
+            statusEl.textContent = '▶ играет';
+            statusEl.className = 'now-status playing';
+            btn.textContent = '⏸ Пауза';
+            btn.className = 'btn-play stop';
+            btn.disabled = false;
+            eq.className = 'eq on';
+        } else if (radioState.status === 'connecting' && st) {
+            nameEl.textContent = st.name;
+            statusEl.textContent = '⟳ подключение…';
+            statusEl.className = 'now-status connecting';
+            btn.textContent = '⏹ Стоп';
+            btn.className = 'btn-play stop';
+            btn.disabled = false;
+            eq.className = 'eq on';
+        } else if (radioState.status === 'paused' && st) {
+            nameEl.textContent = st.name;
+            statusEl.textContent = '⏸ пауза';
+            statusEl.className = 'now-status';
+            btn.textContent = '▶ Продолжить';
+            btn.className = 'btn-play';
+            btn.disabled = false;
+            eq.className = 'eq';
+        } else {
+            nameEl.textContent = 'Выберите станцию';
+            statusEl.textContent = 'радио выключено';
+            statusEl.className = 'now-status';
+            btn.textContent = '▶ Включить';
+            btn.className = 'btn-play';
+            btn.disabled = true;
+            eq.className = 'eq';
+        }
+        renderStationList();
+    }
+
+    function renderStationList() {
+        var box = document.getElementById('station-list');
+        box.innerHTML = '';
+        var all = allStations();
+        for (var idx = 0; idx < all.length; idx++) {
+            (function(i) {
+                var st = all[i];
+                var isCustom = !!st.custom;
+                var active = (radioState.currentId === st.id && radioState.status !== 'stopped');
+                var row = document.createElement('div');
+                row.className = 'station' + (active ? ' playing' : '');
+                var nm = document.createElement('div');
+                nm.className = 'st-name';
+                nm.textContent = st.name;
+                row.appendChild(nm);
+                var right = document.createElement('div');
+                right.className = 'st-right';
+                var status = document.createElement('span');
+                status.className = 'st-status';
+                if (active && radioState.status === 'playing') status.textContent = '▶ играет';
+                else if (active && radioState.status === 'connecting') status.textContent = '⟳';
+                else if (active && radioState.status === 'paused') status.textContent = '⏸';
+                right.appendChild(status);
+                if (isCustom) {
+                    var del = document.createElement('span');
+                    del.className = 'st-del';
+                    del.textContent = '✕';
+                    del.onclick = (function(id) {
+                        return function(e) {
+                            if (e.stopPropagation) e.stopPropagation();
+                            deleteCustomStation(id);
+                        };
+                    })(st.id);
+                    right.appendChild(del);
+                }
+                row.appendChild(right);
+                row.onclick = function() {
+                    if (active) { stopStation(); }
+                    else { playStation(st); }
+                };
+                box.appendChild(row);
+            })(idx);
+        }
+    }
+
+    function deleteCustomStation(id) {
+        var arr = getCustomStations();
+        var out = [];
+        for (var i = 0; i < arr.length; i++) { if (arr[i].id !== id) out.push(arr[i]); }
+        saveCustomStations(out);
+        if (radioState.currentId === id) stopStation();
+        updateUI();
+    }
+
+    // ===== Форма добавления =====
+    function showAddForm() {
+        document.getElementById('ra-name-input').value = '';
+        document.getElementById('ra-url-input').value = '';
+        document.getElementById('add-modal').classList.add('open');
+    }
+    function closeAddForm() { document.getElementById('add-modal').classList.remove('open'); }
+    function confirmAdd() {
+        var name = document.getElementById('ra-name-input').value.trim();
+        var url = document.getElementById('ra-url-input').value.trim();
+        if (!name) { alert('Введите название.'); return; }
+        if (url.indexOf('http://') !== 0 && url.indexOf('https://') !== 0) {
+            alert('Ссылка должна начинаться с http:// или https://');
+            return;
+        }
+        var st = { id: 'user_' + new Date().getTime(), name: name, url: url, fallbacks: [], custom: true };
+        var arr = getCustomStations();
+        arr.push(st);
+        saveCustomStations(arr);
+        closeAddForm();
+        updateUI();
+    }
+
+    // ===== Автостарт =====
+    function toggleAutostart() {
+        setRadioAutostart(!getRadioAutostart());
+        syncAutostartUI();
+    }
+    function syncAutostartUI() {
+        var row = document.getElementById('ra-row');
+        var badge = document.getElementById('ra-badge');
+        if (getRadioAutostart()) {
+            row.classList.add('active');
+            badge.textContent = 'ВКЛ';
+        } else {
+            row.classList.remove('active');
+            badge.textContent = 'ВЫКЛ';
+        }
+    }
+
+    // ===== Старт =====
+    updateUI();
+    syncAutostartUI();
+
+    // Автозапуск последней станции (по правилам Safari может потребоваться тап;
+    // если не заиграло — повтор каждые 10 сек, как в мастере)
+    if (getRadioAutostart()) {
+        var lastId = localStorage.getItem(RADIO_KEYS.last);
+        if (lastId && findStationById(lastId)) {
+            var lastSt = findStationById(lastId);
+            radioState.currentId = lastId;
+            radioState.status = 'connecting';
+            radioUrl = lastSt.url;
+            radioFallbacks = lastSt.fallbacks || [];
+            updateUI();
+            setRadioSource(lastSt.url);
+        }
+    }
+</script>
+</body>
+</html>
